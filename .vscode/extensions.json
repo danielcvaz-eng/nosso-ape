@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "ritwickdey.LiveServer",
+    "ms-playwright.playwright",
+    "github.vscode-github-actions",
+    "github.vscode-pull-request-github",
+    "eamodio.gitlens",
+    "usernamehw.errorlens",
+    "esbenp.prettier-vscode"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "portaLocal",
+      "type": "promptString",
+      "description": "Digite a porta do servidor local",
+      "default": "8000"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "Iniciar servidor local",
+      "type": "shell",
+      "command": "python3 -m http.server ${input:portaLocal}",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nosso Apê</title>
+  <meta name="description" content="Lista de presentes da casa nova com catálogo organizado, fluxo de Pix e confirmação manual pelos moradores.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <nav class="topbar" aria-label="Navegação principal">
+        <a class="brand" href="#inicio">Nosso Apê</a>
+        <a class="topbar-link" href="#catalogo">Ver presentes</a>
+      </nav>
+
+      <section class="hero-content" id="inicio">
+        <div>
+          <p class="eyebrow">Lista de presentes da casa nova</p>
+          <h1>Um cantinho novo, montado com carinho e ajuda de quem está perto.</h1>
+          <p class="hero-text">
+            Criamos esta lista para organizar os itens que realmente precisamos
+            para começar essa fase. Aqui você encontra presentes pequenos,
+            itens essenciais e opções maiores para colaboração.
+          </p>
+
+          <div class="hero-actions">
+            <a class="primary-link" href="#catalogo">Explorar catálogo</a>
+            <span class="soft-note">Pix fora do site, confirmação manual pelos moradores</span>
+          </div>
+        </div>
+
+        <aside class="hero-card" aria-label="Resumo do catálogo">
+          <span class="hero-card-icon">🏠</span>
+          <strong id="total-products">0 itens</strong>
+          <p>organizados por categoria, prioridade e tipo de presente.</p>
+        </aside>
+      </section>
+    </header>
+
+    <main>
+      <section class="how-it-works" aria-labelledby="como-funciona">
+        <div>
+          <p class="eyebrow">Como vai funcionar</p>
+          <h2 id="como-funciona">Duas formas simples de ajudar</h2>
+        </div>
+
+        <div class="steps">
+          <article class="step-card">
+            <span>01</span>
+            <h3>Presentear um item inteiro</h3>
+            <p>Ideal para itens menores, como utensílios, organizadores e peças de decoração.</p>
+          </article>
+
+          <article class="step-card">
+            <span>02</span>
+            <h3>Colaborar com itens maiores</h3>
+            <p>Perfeito para eletros e itens de valor mais alto que podem receber ajuda em grupo.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="publication-note" aria-labelledby="publication-note-title">
+        <div class="section-header compact">
+          <div>
+            <p class="eyebrow">Antes de presentear</p>
+            <h2 id="publication-note-title">Como funciona o pagamento e a confirmação</h2>
+            <p>
+              O site organiza os presentes e orienta o fluxo. O pagamento continua sendo feito
+              por Pix e a validação oficial ainda acontece manualmente pelos moradores.
+            </p>
+          </div>
+        </div>
+
+        <div class="trust-grid">
+          <article class="trust-card">
+            <h3>1. Pagamento via Pix</h3>
+            <p>O modal mostra a chave Pix oficial, o recebedor e o valor calculado para o presente ou colaboração.</p>
+          </article>
+
+          <article class="trust-card">
+            <h3>2. Registro local da intenção</h3>
+            <p>O botão <strong>Registrar intenção local</strong> salva um registro apenas neste navegador para apoiar o acompanhamento.</p>
+          </article>
+
+          <article class="trust-card">
+            <h3>3. Confirmação manual</h3>
+            <p>A confirmação real continua sendo feita pelos moradores. Em caso de dúvida, fale com eles pelo WhatsApp.</p>
+            <a class="text-link" id="publication-whatsapp-link" href="#" target="_blank" rel="noopener noreferrer">Falar com os moradores</a>
+          </article>
+        </div>
+      </section>
+
+      <section class="catalog" id="catalogo" aria-labelledby="catalogo-titulo">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Catálogo oficial</p>
+            <h2 id="catalogo-titulo">Itens que estamos precisando</h2>
+            <p>
+              Os itens aparecem agrupados por categoria. Produtos de prioridade alta
+              recebem destaque para facilitar a escolha.
+            </p>
+          </div>
+          <span class="products-counter" id="products-counter">0 itens</span>
+        </div>
+
+        <form class="catalog-controls" id="catalog-controls" aria-label="Filtros do catálogo">
+          <label class="filter-field" for="search-input">
+            Buscar item
+            <input id="search-input" type="search" placeholder="Ex: micro-ondas, tapete, mop">
+          </label>
+
+          <label class="filter-field" for="category-filter">
+            Categoria
+            <select id="category-filter">
+              <option value="todos">Todas</option>
+            </select>
+          </label>
+
+          <label class="filter-field" for="priority-filter">
+            Prioridade
+            <select id="priority-filter">
+              <option value="todos">Todas</option>
+              <option value="alta">Alta</option>
+              <option value="media">Média</option>
+              <option value="baixa">Baixa</option>
+            </select>
+          </label>
+
+          <label class="filter-field" for="status-filter">
+            Status
+            <select id="status-filter">
+              <option value="todos">Todos</option>
+              <option value="disponivel">Disponível</option>
+              <option value="reservado">Reservado</option>
+              <option value="recebido">Recebido</option>
+            </select>
+          </label>
+
+          <button class="clear-filters" id="clear-filters" type="button">
+            Limpar filtros
+          </button>
+        </form>
+
+        <p class="local-state-note" id="local-state-note" aria-live="polite"></p>
+        <div class="catalog-groups" id="products-list"></div>
+        <p class="empty-state hidden" id="empty-state">
+          Nenhum item encontrado com esses filtros. Tente buscar por outro nome ou limpar os filtros.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div>
+        <p>Nosso Apê</p>
+        <span>Obrigado por fazer parte desse começo com a gente.</span>
+      </div>
+
+      <div class="footer-actions">
+        <button class="ghost-button" id="reset-local-data" type="button">
+          Limpar dados locais
+        </button>
+        <button class="resident-toggle" id="resident-toggle" type="button" aria-pressed="false">
+          Modo moradores local
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <div class="modal-overlay" id="gift-modal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <button class="modal-close" type="button" id="close-modal" aria-label="Fechar modal">
+        ×
+      </button>
+
+      <div class="modal-header">
+        <p class="eyebrow" id="modal-step-label">Quero presentear</p>
+        <h2 id="modal-title">Confirmar intenção de presente</h2>
+        <p id="modal-description">
+          Preencha rapidinho para ver a chave Pix e registrar sua intenção local.
+        </p>
+      </div>
+
+      <div class="selected-product" id="selected-product"></div>
+
+      <form class="gift-form" id="gift-form">
+        <div class="modal-step" data-step="details">
+          <label class="form-field" for="person-name">
+            Seu nome
+            <input id="person-name" name="personName" type="text" placeholder="Ex: Ana" required>
+          </label>
+
+          <fieldset class="gift-type">
+            <legend>Como você quer ajudar?</legend>
+
+            <label>
+              <input type="radio" name="giftType" value="inteiro" checked>
+              Quero presentear o item inteiro
+            </label>
+
+            <label>
+              <input type="radio" name="giftType" value="colaborativo">
+              Quero colaborar com esse item
+            </label>
+          </fieldset>
+
+          <label class="form-field hidden" id="contribution-field" for="contribution-value">
+            Valor da colaboração
+            <input id="contribution-value" name="contributionValue" type="text" inputmode="decimal" placeholder="Ex: 50,00">
+          </label>
+
+          <label class="form-field" for="optional-message">
+            Mensagem opcional
+            <textarea id="optional-message" name="optionalMessage" rows="4" placeholder="Se quiser, escreva uma mensagem curta."></textarea>
+          </label>
+        </div>
+
+        <div class="modal-step hidden" data-step="pix">
+          <div class="pix-box">
+            <p class="eyebrow">Dados para Pix</p>
+            <h3>Faça o Pix pela chave abaixo</h3>
+            <dl>
+              <div>
+                <dt>Chave Pix</dt>
+                <dd id="pix-key">daniel.vazbtg@gmail.com</dd>
+              </div>
+              <div>
+                <dt>Tipo da chave</dt>
+                <dd id="pix-type">E-mail</dd>
+              </div>
+              <div>
+                <dt>Recebedor</dt>
+                <dd id="pix-receiver">Daniel Correia Vaz</dd>
+              </div>
+              <div>
+                <dt>Valor</dt>
+                <dd id="pix-value">R$ 0,00</dd>
+              </div>
+            </dl>
+            <p class="manual-note">
+              O Pix é feito fora do site. O botão desta etapa registra a intenção apenas neste navegador, mas a confirmação oficial continua manual pelos moradores.
+            </p>
+            <button class="copy-pix-button" id="copy-pix-button" type="button">
+              Copiar chave Pix
+            </button>
+            <span class="copy-feedback" id="copy-feedback" aria-live="polite"></span>
+            <a class="text-link" id="whatsapp-support-link" href="#" target="_blank" rel="noopener noreferrer">
+              Tive dúvida. Quero falar no WhatsApp
+            </a>
+          </div>
+
+          <label class="confirm-payment">
+            <input id="payment-confirmation" type="checkbox">
+            Já fiz o Pix e quero registrar uma intenção local neste navegador
+          </label>
+        </div>
+
+        <div class="modal-step hidden" data-step="success">
+          <div class="success-box">
+            <p id="success-message">
+              Os moradores do Apê estão muito felizes com a sua colaboração para arrumar nosso lar! Gostaria de enviar uma mensagem nos confirmando o seu presente?
+            </p>
+          </div>
+        </div>
+
+        <p class="form-error hidden" id="form-error" aria-live="polite"></p>
+
+        <div class="modal-actions">
+          <button class="secondary-button hidden" id="back-button" type="button">
+            Voltar
+          </button>
+          <button class="modal-submit" id="primary-flow-button" type="submit">
+            Continuar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
