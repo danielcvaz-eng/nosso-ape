@@ -72,6 +72,18 @@ pix.receiver
 
 O projeto foi preparado para publicação estática em GitHub Pages.
 
+Repositório:
+
+```text
+https://github.com/danielcvaz-eng/nosso-ape
+```
+
+URL pública:
+
+```text
+https://danielcvaz-eng.github.io/nosso-ape/
+```
+
 Regras importantes:
 
 - manter `index.html` na raiz publicada
@@ -83,7 +95,7 @@ Regras importantes:
 Para validar uma URL publicada com Playwright:
 
 ```bash
-BASE_URL=https://USUARIO.github.io/nosso-ape/ npm run test:e2e
+BASE_URL=https://danielcvaz-eng.github.io/nosso-ape/ npm run test:e2e
 ```
 
 ## Limites operacionais do localStorage

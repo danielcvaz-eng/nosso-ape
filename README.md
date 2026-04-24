@@ -4,6 +4,11 @@ Lista de presentes para casa nova feita como site estático com HTML, CSS e Java
 
 O projeto já cobre catálogo, filtros, fluxo de presente com modal, Pix, confirmação simulada, progresso de itens colaborativos, WhatsApp e um modo local de operação para os moradores. Nesta etapa, a base foi reorganizada para ficar mais publicável, mais estável e mais preparada para uma futura migração para backend.
 
+## Links
+
+- Repositório: `https://github.com/danielcvaz-eng/nosso-ape`
+- Site publicado: `https://danielcvaz-eng.github.io/nosso-ape/`
+
 ## Funcionalidades atuais
 
 - catálogo oficial com 15 produtos reais
@@ -310,16 +315,16 @@ Esta base já está preparada para publicação estática:
 7. Aguarde a URL pública ser gerada.
 8. Teste a página publicada.
 
-URL esperada no formato:
+URL pública:
 
 ```text
-https://USUARIO.github.io/nosso-ape/
+https://danielcvaz-eng.github.io/nosso-ape/
 ```
 
-Depois que a URL pública existir, rode os testes contra ela:
+Para rodar os testes contra a versão publicada:
 
 ```bash
-BASE_URL=https://USUARIO.github.io/nosso-ape/ npm run test:e2e
+BASE_URL=https://danielcvaz-eng.github.io/nosso-ape/ npm run test:e2e
 ```
 
 ## Como publicar uma nova versão
