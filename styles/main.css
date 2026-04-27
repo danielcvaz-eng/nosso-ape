@@ -359,6 +359,13 @@ a {
   padding: 0 16px;
 }
 
+.state-notes {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.backend-state-note,
 .local-state-note {
   margin: 0 0 18px;
   padding: 14px 16px;
@@ -367,6 +374,24 @@ a {
   color: var(--muted-color);
   background-color: rgba(255, 255, 255, 0.56);
   font-weight: 800;
+}
+
+.state-notes .backend-state-note,
+.state-notes .local-state-note {
+  margin: 0;
+}
+
+.backend-state-note[data-mode="supabase"] {
+  color: var(--green-dark);
+  border-color: rgba(82, 109, 63, 0.24);
+  background-color: var(--green-soft);
+}
+
+.backend-state-note[data-mode="local"],
+.backend-state-note[data-mode="local-fallback"] {
+  color: var(--gold-dark);
+  border-color: rgba(130, 97, 39, 0.22);
+  background-color: var(--gold-soft);
 }
 
 .catalog-groups {
@@ -699,6 +724,60 @@ a {
   background: linear-gradient(135deg, var(--accent-color), var(--accent-dark));
 }
 
+.resident-panel {
+  margin-top: 22px;
+  padding: 26px;
+  border: 1px solid var(--border-color);
+  border-radius: 28px;
+  background-color: var(--surface-color);
+  box-shadow: 0 18px 50px var(--shadow-color);
+}
+
+.resident-panel-actions,
+.pending-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-feedback,
+.empty-admin-state {
+  margin: 0 0 16px;
+  color: var(--muted-color);
+  font-weight: 800;
+}
+
+.pending-list {
+  display: grid;
+  gap: 14px;
+}
+
+.pending-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid var(--border-color);
+  border-radius: 22px;
+  background-color: var(--surface-strong);
+}
+
+.pending-card h3 {
+  margin: 0 0 6px;
+}
+
+.pending-card p {
+  margin: 6px 0 0;
+  color: var(--muted-color);
+  line-height: 1.5;
+}
+
+.pending-card .pending-message {
+  color: var(--text-color);
+  font-weight: 800;
+}
+
 .empty-state {
   margin: 20px 0 0;
   padding: 18px;
@@ -989,6 +1068,7 @@ a {
   .catalog-controls,
   .steps,
   .product-actions,
+  .pending-card,
   .modal-actions {
     grid-template-columns: 1fr;
   }
@@ -999,6 +1079,16 @@ a {
   .footer {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .resident-panel-actions,
+  .pending-actions {
+    width: 100%;
+  }
+
+  .resident-panel-actions > *,
+  .pending-actions > * {
+    flex: 1;
   }
 
   .product-card-header {

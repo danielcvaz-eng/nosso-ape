@@ -12,6 +12,14 @@ export const APP_CONFIG = {
     version: 2,
     legacyStatusKey: "nossoApeStatusProdutos",
     legacyContributionsKey: "nossoApeContribuicoesProdutos"
+  },
+  supabase: {
+    enabled: true,
+    projectUrl: "https://nhoexiahfcqqgzombptj.supabase.co",
+    restUrl: "https://nhoexiahfcqqgzombptj.supabase.co/rest/v1",
+    anonKey: "sb_publishable_LbQ48ZS1vMj5FlaKEoMEHw_FyOdTpNV",
+    authStorageKey: "nossoApeSupabaseSession",
+    admins: ["dvaz538@gmail.com", "nathamgil10@gmail.com"]
   }
 };
 
@@ -48,13 +56,13 @@ export const MODAL_STEPS = {
   pix: {
     label: "Pagamento via Pix",
     title: "Faça o Pix pela chave exibida",
-    description: "O pagamento é feito pela chave Pix abaixo. O botão desta etapa registra a intenção apenas neste navegador, mas a confirmação oficial continua manual pelos moradores.",
-    button: "Registrar intenção local"
+    description: "O pagamento é feito pela chave Pix abaixo. O registro fica pendente até a confirmação manual dos moradores.",
+    button: "Registrar intenção"
   },
   success: {
     label: "Intenção registrada",
-    title: "Registro local concluído",
-    description: "Seu registro local foi salvo. Para concluir a comunicação, envie a mensagem pronta no WhatsApp dos moradores.",
+    title: "Registro enviado",
+    description: "Seu registro foi salvo. Se o backend estiver ativo, ele ficará pendente até confirmação manual dos moradores.",
     button: "Enviar WhatsApp"
   }
 };

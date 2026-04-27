@@ -32,6 +32,7 @@ O projeto já cobre catálogo, filtros, fluxo de presente com modal, Pix, confir
 - CSS
 - JavaScript puro com módulos ES
 - `localStorage` para persistência local
+- Supabase para backend compartilhado, quando configurado
 - Playwright Test para QA automatizado em navegador
 - Playwright MCP para QA assistido no navegador, quando disponível no Codex
 
@@ -64,12 +65,17 @@ nosso-ape/
 ├── data/
 │   └── produtos.js
 ├── scripts/
+│   ├── api.js
 │   ├── config.js
 │   ├── main.js
 │   ├── storage.js
+│   ├── supabase.example.js
+│   ├── supabaseClient.js
 │   └── utils.js
 ├── styles/
 │   └── main.css
+├── supabase/
+│   └── schema.sql
 ├── docs/
 │   └── technical.md
 ├── tests/
@@ -130,8 +136,8 @@ python3 -m http.server 8001
 4. Se escolher colaboração, informe um valor.
 5. Avance para a etapa de Pix.
 6. Copie a chave Pix.
-7. Marque a caixa de registro local após fazer o Pix.
-8. Clique em `Registrar intenção local`.
+7. Marque a caixa de registro após fazer o Pix.
+8. Clique em `Registrar intenção`.
 9. Verifique a etapa de sucesso.
 10. Clique em `Enviar WhatsApp`.
 
@@ -199,6 +205,16 @@ Os testes atuais validam:
 - modo moradores local
 - limpeza de dados locais
 - responsividade básica em desktop e celular
+
+### Teste smoke com Supabase real
+
+Depois de aplicar o schema no Supabase e subir o servidor local, rode:
+
+```bash
+RUN_SUPABASE_SMOKE=1 BASE_URL=http://localhost:8000 npx playwright test tests/playwright/supabase-smoke.spec.mjs
+```
+
+Esse teste valida que o catálogo carrega usando Supabase real em desktop e mobile.
 
 ### Observação sobre Playwright MCP
 
@@ -294,6 +310,121 @@ Campos principais:
 - `pix.type`
 - `pix.receiver`
 - `finalGiftMessage`
+- `supabase.projectUrl`
+- `supabase.restUrl`
+- `supabase.anonKey`
+
+## Backend Supabase
+
+O projeto agora tem uma base preparada para usar Supabase como backend compartilhado.
+
+O que muda quando o Supabase estiver configurado e o SQL aplicado:
+
+- produtos passam a ser carregados da tabela `products`
+- progresso confirmado passa a vir do Supabase
+- visitantes registram contribuições como `pending`
+- contribuições pendentes não entram no progresso oficial
+- moradores autorizados entram por magic link
+- moradores confirmam ou rejeitam contribuições manualmente
+- status oficial passa a ser compartilhado entre dispositivos
+
+Se o Supabase estiver indisponível ou o schema ainda não tiver sido aplicado, o site continua funcionando em modo local/fallback com os dados atuais.
+
+Para forçar o modo local em testes ou diagnóstico:
+
+```text
+http://localhost:8000/?backend=local
+```
+
+### Dados já configurados no frontend
+
+Arquivo:
+
+- `scripts/config.js`
+
+Valores:
+
+```text
+Project URL: https://nhoexiahfcqqgzombptj.supabase.co
+REST URL: https://nhoexiahfcqqgzombptj.supabase.co/rest/v1
+Anon/publishable key: configurada no arquivo de config
+```
+
+A anon/publishable key pode aparecer no frontend. Ela não é senha privada. A segurança vem das policies RLS do Supabase.
+
+Nunca coloque a `service_role key` no frontend, no GitHub Pages ou em arquivos públicos.
+
+### Como criar as tabelas no Supabase
+
+1. Abra o painel do Supabase.
+2. Entre no projeto `danielcvaz datacenter`.
+3. Vá em `SQL Editor`.
+4. Abra o arquivo `supabase/schema.sql` deste projeto.
+5. Copie todo o conteúdo.
+6. Cole no SQL Editor.
+7. Clique em `Run`.
+
+Esse SQL cria:
+
+- `products`
+- `contributions`
+- `allowed_admins`
+- view `product_progress`
+- funções `current_user_is_admin`, `confirm_contribution` e `reject_contribution`
+- policies RLS
+- seeds dos 15 produtos oficiais
+- admins autorizados
+
+Se você já aplicou uma versão anterior do schema e o insert público de contribuição `pending` foi bloqueado por RLS, execute também:
+
+- `supabase/patch-allow-public-pending-contributions.sql`
+
+### Auth e Redirect URLs
+
+No Supabase, configure as URLs em:
+
+```text
+Authentication > URL Configuration
+```
+
+Site URL:
+
+```text
+https://danielcvaz-eng.github.io/nosso-ape/
+```
+
+Redirect URLs recomendadas:
+
+```text
+https://danielcvaz-eng.github.io/nosso-ape/
+http://localhost:8000/
+http://localhost:8001/
+http://localhost:8002/
+http://localhost:8003/
+```
+
+O login dos moradores usa magic link por e-mail.
+
+Admins permitidos no SQL:
+
+```text
+dvaz538@gmail.com
+nathamgil10@gmail.com
+```
+
+### Por que contribuições ficam pendentes
+
+O Pix acontece fora do site. Por isso, o site não deve marcar uma contribuição como confirmada automaticamente.
+
+Fluxo correto:
+
+1. Visitante preenche intenção.
+2. Visitante faz Pix.
+3. Site registra contribuição como `pending`.
+4. Morador entra no modo moradores com magic link.
+5. Morador confere o Pix manualmente.
+6. Morador confirma ou rejeita a contribuição.
+7. Apenas contribuições confirmadas entram no progresso oficial.
 
 ## Publicação em GitHub Pages
 
@@ -367,8 +498,9 @@ O GitHub Pages atualiza a publicação automaticamente após o push para a branc
 O projeto deixa claro que:
 
 - o pagamento é feito por Pix com a chave exibida no modal
-- o botão `Registrar intenção local` registra a intenção no front-end
-- esse registro é local ao navegador atual
+- o botão `Registrar intenção` registra a intenção no site
+- com Supabase ativo, esse registro fica como pendente no backend
+- em modo fallback, esse registro continua local ao navegador atual
 - a confirmação oficial continua manual pelos moradores
 - dúvidas podem ser tratadas via WhatsApp
 
@@ -410,12 +542,12 @@ Esse arquivo explica:
 
 ## Próximo passo recomendado
 
-O próximo salto grande é separar o que hoje é apenas persistência local e confirmação manual em uma camada de backend mínima:
+O próximo salto grande é aplicar o schema no Supabase, testar o magic link dos moradores e validar o fluxo real com contribuições pendentes:
 
-- autenticação básica dos moradores
+- autenticação por magic link
 - status oficiais compartilhados
 - contribuições persistidas em servidor
-- confirmação manual centralizada
+- confirmação manual centralizada pelos moradores
 
 Antes disso, também vale decidir a política oficial de reserva:
 

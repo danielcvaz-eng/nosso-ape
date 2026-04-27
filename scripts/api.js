@@ -1,0 +1,179 @@
+import fallbackProducts from "../data/produtos.js";
+import { APP_CONFIG } from "./config.js";
+import {
+  clearSession,
+  getStoredSession,
+  isSupabaseConfigured,
+  loadCurrentUser,
+  parseAuthRedirect,
+  requestMagicLink,
+  supabaseRest
+} from "./supabaseClient.js";
+
+function toProduct(row, progress = {}) {
+  return {
+    id: row.id,
+    nome: row.name,
+    categoria: row.category,
+    preco: Number(row.price),
+    prioridade: row.priority,
+    tipo: row.type,
+    descricao: row.description,
+    link: row.link,
+    status: row.status,
+    precoEstimado: Boolean(row.estimated_price),
+    confirmedAmount: Number(progress.confirmed_amount || 0)
+  };
+}
+
+function buildProgressMap(rows) {
+  return Object.fromEntries(rows.map((row) => [row.product_id, row]));
+}
+
+export async function loadCatalogData() {
+  if (!isSupabaseConfigured()) {
+    return {
+      mode: "local",
+      products: fallbackProducts,
+      message: "Supabase não configurado. Usando dados locais."
+    };
+  }
+
+  try {
+    const [productRows, progressRows] = await Promise.all([
+      supabaseRest("/products?select=*&order=id.asc"),
+      supabaseRest("/product_progress?select=*")
+    ]);
+
+    const progressMap = buildProgressMap(progressRows);
+
+    return {
+      mode: "supabase",
+      products: productRows.map((row) => toProduct(row, progressMap[row.id])),
+      message: "Dados sincronizados com Supabase."
+    };
+  } catch (error) {
+    console.warn("[Nosso Ape] Falha ao carregar Supabase. Usando fallback local.", error);
+    return {
+      mode: "local-fallback",
+      products: fallbackProducts,
+      message: "Não foi possível conectar ao Supabase. Usando dados locais neste navegador.",
+      error
+    };
+  }
+}
+
+export async function submitPendingContribution({ product, flowData }) {
+  const payload = {
+    product_id: product.id,
+    giver_name: flowData.personName,
+    giver_message: flowData.optionalMessage || null,
+    amount: Number(flowData.selectedValue.toFixed(2)),
+    contribution_type: flowData.giftType,
+    payment_method: "pix",
+    status: "pending"
+  };
+
+  await supabaseRest("/contributions", {
+    method: "POST",
+    headers: {
+      Prefer: "return=minimal"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  return { status: "pending" };
+}
+
+export async function initializeAdminSession() {
+  if (!isSupabaseConfigured()) {
+    return {
+      configured: false,
+      session: null,
+      user: null,
+      isAdmin: false
+    };
+  }
+
+  const session = await parseAuthRedirect();
+  const accessToken = session?.accessToken;
+
+  if (!accessToken) {
+    return {
+      configured: true,
+      session: null,
+      user: null,
+      isAdmin: false
+    };
+  }
+
+  try {
+    const user = session.user?.email ? session.user : await loadCurrentUser(accessToken);
+    const isAdmin = await supabaseRest("/rpc/current_user_is_admin", {
+      method: "POST",
+      accessToken,
+      body: JSON.stringify({})
+    });
+
+    return {
+      configured: true,
+      session: getStoredSession(),
+      user,
+      isAdmin: Boolean(isAdmin)
+    };
+  } catch (error) {
+    console.warn("[Nosso Ape] Sessão admin inválida.", error);
+    clearSession();
+    return {
+      configured: true,
+      session: null,
+      user: null,
+      isAdmin: false,
+      error
+    };
+  }
+}
+
+export async function requestAdminLogin(email) {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (!APP_CONFIG.supabase.admins.includes(normalizedEmail)) {
+    throw new Error("Este e-mail não está autorizado como morador/admin.");
+  }
+
+  await requestMagicLink(normalizedEmail);
+}
+
+export async function loadPendingContributions() {
+  return supabaseRest(
+    "/contributions?select=id,product_id,giver_name,giver_message,amount,contribution_type,payment_method,status,created_at,products(name,category)&status=eq.pending&order=created_at.desc"
+  );
+}
+
+export async function confirmContribution(contributionId) {
+  return supabaseRest("/rpc/confirm_contribution", {
+    method: "POST",
+    body: JSON.stringify({ contribution_id: contributionId })
+  });
+}
+
+export async function rejectContribution(contributionId, reason = "") {
+  return supabaseRest("/rpc/reject_contribution", {
+    method: "POST",
+    body: JSON.stringify({ contribution_id: contributionId, reason })
+  });
+}
+
+export async function updateRemoteProductStatus(productId, status) {
+  return supabaseRest(`/products?id=eq.${productId}`, {
+    method: "PATCH",
+    headers: {
+      Prefer: "return=representation"
+    },
+    body: JSON.stringify({ status })
+  });
+}
+
+export function logoutAdmin() {
+  clearSession();
+}
