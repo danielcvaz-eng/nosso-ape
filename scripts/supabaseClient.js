@@ -149,7 +149,7 @@ export async function requestMagicLink(email) {
     method: "POST",
     body: JSON.stringify({
       email,
-      create_user: true,
+      create_user: false,
       options: {
         email_redirect_to: redirectTo
       }

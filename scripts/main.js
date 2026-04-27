@@ -607,12 +607,6 @@ async function registerSimulatedPayment() {
         product: appState.selectedProduct,
         flowData: appState.flowData
       });
-
-      elements.successMessage.textContent = "Sua intenção foi enviada e ficou pendente para confirmação manual dos moradores. Se quiser, envie também a mensagem pronta no WhatsApp para avisar.";
-      await refreshCatalogFromBackend();
-      appState.selectedProduct = getSelectedProduct(appState.selectedProduct.id);
-      updateModalStep("success");
-      return;
     } catch (error) {
       console.error("[Nosso Ape] Erro ao registrar contribuição no Supabase.", error);
       showFormError("Não foi possível registrar no Supabase agora. Tente novamente ou fale com os moradores pelo WhatsApp.");
@@ -620,6 +614,19 @@ async function registerSimulatedPayment() {
       elements.primaryFlowButton.textContent = MODAL_STEPS.pix.button;
       return;
     }
+
+    elements.successMessage.textContent = "Sua intenção foi enviada e ficou pendente para confirmação manual dos moradores. Se quiser, envie também a mensagem pronta no WhatsApp para avisar.";
+
+    try {
+      await refreshCatalogFromBackend();
+      appState.selectedProduct = getSelectedProduct(appState.selectedProduct.id);
+    } catch (error) {
+      console.warn("[Nosso Ape] Registro enviado, mas o catálogo não foi atualizado.", error);
+      elements.successMessage.textContent = "Sua intenção foi enviada e ficou pendente para confirmação manual dos moradores. Não foi possível atualizar o catálogo agora, mas não envie novamente para evitar duplicidade.";
+    }
+
+    updateModalStep("success");
+    return;
   }
 
   if (appState.flowData.giftType === "inteiro") {

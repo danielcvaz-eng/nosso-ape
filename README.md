@@ -214,7 +214,7 @@ Depois de aplicar o schema no Supabase e subir o servidor local, rode:
 RUN_SUPABASE_SMOKE=1 BASE_URL=http://localhost:8000 npx playwright test tests/playwright/supabase-smoke.spec.mjs
 ```
 
-Esse teste valida que o catálogo carrega usando Supabase real em desktop e mobile.
+Esse teste valida que o catálogo carrega usando Supabase real nos projetos configurados do Playwright.
 
 ### Observação sobre Playwright MCP
 
@@ -403,7 +403,7 @@ http://localhost:8002/
 http://localhost:8003/
 ```
 
-O login dos moradores usa magic link por e-mail.
+O login dos moradores usa magic link por e-mail. O frontend não cria usuários automaticamente; crie previamente os usuários autorizados no Supabase Auth ou mantenha apenas contas já testadas.
 
 Admins permitidos no SQL:
 
@@ -432,7 +432,8 @@ Esta base já está preparada para publicação estática:
 
 - usa caminhos relativos
 - usa módulos ES nativos
-- não depende de backend
+- funciona como site estático no GitHub Pages
+- usa Supabase quando configurado, com fallback local para testes e indisponibilidade
 - não depende de build
 
 ### Passo a passo
@@ -508,23 +509,19 @@ Isso reduz risco de interpretação errada e evita passar a impressão de confir
 
 ## Limitações atuais
 
-- não existe backend
-- não existe autenticação real para o modo moradores
 - não existe confirmação bancária automática
-- status e contribuições salvos no navegador não sincronizam entre dispositivos
+- o Supabase não confirma Pix automaticamente; moradores ainda conferem manualmente
+- em modo fallback local, status e contribuições salvos no navegador não sincronizam entre dispositivos
 - o fluxo Pix é assistido, não transacional
 - o convite de WhatsApp depende de o navegador conseguir abrir a URL externa
 
-## Futura migração para backend
+## Próximas evoluções de backend
 
-As partes que hoje estão simuladas ou locais e devem virar API no futuro:
+Com Supabase, a primeira camada de backend já existe. Próximos pontos possíveis:
 
-- catálogo oficial e status persistidos no servidor
-- contribuições por item
-- reservas e confirmações reais
-- autenticação do modo moradores
 - auditoria de alterações
 - integração com notificações e mensageria
+- validações operacionais mais rígidas para evitar spam de contribuições pendentes
 
 ## Documentação técnica adicional
 
@@ -538,11 +535,11 @@ Esse arquivo explica:
 - como o `localStorage` funciona
 - quais chaves são usadas
 - como resetar dados locais
-- o que precisará virar backend
+- como funciona a integração Supabase
 
 ## Próximo passo recomendado
 
-O próximo salto grande é aplicar o schema no Supabase, testar o magic link dos moradores e validar o fluxo real com contribuições pendentes:
+O próximo salto grande é revisar o PR da branch Supabase, rodar os testes e validar o fluxo real com contribuições pendentes:
 
 - autenticação por magic link
 - status oficiais compartilhados

@@ -92,7 +92,7 @@ Policies propostas em `supabase/schema.sql`:
 
 - qualquer pessoa pode ler `products`
 - qualquer pessoa pode ler `product_progress`
-- qualquer pessoa pode inserir contribuição com status `pending`
+- qualquer pessoa pode inserir contribuição com status `pending`, desde que o produto exista, não esteja recebido e o valor respeite regras básicas do item
 - visitantes não podem confirmar contribuição
 - visitantes não podem alterar status de produto
 - apenas usuários autenticados e autorizados em `allowed_admins` podem ler/atualizar contribuições
@@ -167,6 +167,8 @@ http://localhost:8003/
 ```
 
 O login dos moradores usa magic link. O frontend valida o e-mail contra a allowlist antes de pedir o link, e o banco valida novamente via RLS/função `current_user_is_admin()`.
+
+O frontend envia `create_user: false` no pedido de magic link. Por isso, os usuários autorizados precisam existir previamente no Supabase Auth ou já terem sido criados/testados antes.
 
 ## Observações de deploy
 

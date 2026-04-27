@@ -14,6 +14,24 @@ with check (
   and contribution_type in ('inteiro', 'colaborativo')
   and char_length(trim(giver_name)) between 2 and 120
   and (giver_message is null or char_length(giver_message) <= 500)
+  and exists (
+    select 1
+    from public.products
+    where products.id = contributions.product_id
+      and products.status <> 'recebido'
+      and (
+        (
+          products.type = 'inteiro'
+          and contributions.contribution_type = 'inteiro'
+          and contributions.amount = products.price
+        )
+        or
+        (
+          products.type = 'colaborativo'
+          and contributions.amount <= products.price
+        )
+      )
+  )
   and confirmed_at is null
   and confirmed_by is null
   and confirmed_by_email is null
