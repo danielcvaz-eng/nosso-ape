@@ -97,11 +97,13 @@ export async function supabaseRest(path, options = {}) {
     throw new Error(`Supabase REST ${response.status}: ${details}`);
   }
 
-  if (response.status === 204) {
+  const responseText = await response.text();
+
+  if (!responseText) {
     return null;
   }
 
-  return response.json();
+  return JSON.parse(responseText);
 }
 
 export async function supabaseAuth(path, options = {}) {
@@ -131,11 +133,13 @@ export async function supabaseAuth(path, options = {}) {
     throw new Error(`Supabase Auth ${response.status}: ${details}`);
   }
 
-  if (response.status === 204) {
+  const responseText = await response.text();
+
+  if (!responseText) {
     return null;
   }
 
-  return response.json();
+  return JSON.parse(responseText);
 }
 
 export async function requestMagicLink(email) {
