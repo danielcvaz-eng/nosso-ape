@@ -55,6 +55,7 @@ create index if not exists idx_contributions_created_at on public.contributions(
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at = now();
@@ -72,7 +73,6 @@ create or replace function public.current_user_is_admin()
 returns boolean
 language sql
 stable
-security definer
 set search_path = public
 as $$
   select exists (
@@ -85,7 +85,6 @@ $$;
 create or replace function public.confirm_contribution(contribution_id uuid)
 returns public.contributions
 language plpgsql
-security definer
 set search_path = public
 as $$
 declare
@@ -141,7 +140,6 @@ $$;
 create or replace function public.reject_contribution(contribution_id uuid, reason text default null)
 returns public.contributions
 language plpgsql
-security definer
 set search_path = public
 as $$
 declare
@@ -263,7 +261,7 @@ create policy "Admins can read allowed admins"
 on public.allowed_admins
 for select
 to authenticated
-using (public.current_user_is_admin());
+using (email = lower(coalesce(auth.jwt() ->> 'email', '')));
 
 revoke all on function public.confirm_contribution(uuid) from public, anon;
 revoke all on function public.reject_contribution(uuid, text) from public, anon;

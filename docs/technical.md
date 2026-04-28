@@ -96,10 +96,12 @@ Policies propostas em `supabase/schema.sql`:
 - visitantes anônimos podem ler apenas `id`, `product_id`, `amount` e `status` de contribuições `confirmed`, para a view `product_progress` funcionar com `security_invoker`
 - visitantes não podem confirmar contribuição
 - visitantes não podem alterar status de produto
+- usuários autenticados só conseguem ler a própria linha em `allowed_admins`
 - apenas usuários autenticados e autorizados em `allowed_admins` podem ler/atualizar contribuições
 - apenas usuários autorizados podem alterar status oficial de produto
 
 A view `product_progress` deve usar `security_invoker = true` para evitar o alerta `Security Definer View` do Supabase e fazer a leitura respeitar RLS.
+As funções RPC públicas devem evitar `SECURITY DEFINER`; a autorização acontece por RLS e pela função `current_user_is_admin()` como invoker.
 
 ## Chaves Supabase
 
@@ -223,6 +225,12 @@ Se o Security Advisor apontar `Security Definer View` em `product_progress`, exe
 
 ```text
 supabase/patch-security-invoker-product-progress.sql
+```
+
+Se o Security Advisor apontar warnings em funções públicas, execute no Supabase:
+
+```text
+supabase/patch-security-advisor-function-warnings.sql
 ```
 
 ## Limites operacionais do localStorage

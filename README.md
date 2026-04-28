@@ -383,6 +383,10 @@ Se o Security Advisor do Supabase apontar `Security Definer View` na view `produ
 
 - `supabase/patch-security-invoker-product-progress.sql`
 
+Se o Security Advisor apontar warnings de `SECURITY DEFINER` em funções públicas ou `Function Search Path Mutable`, execute:
+
+- `supabase/patch-security-advisor-function-warnings.sql`
+
 ### Auth e Redirect URLs
 
 No Supabase, configure as URLs em:
