@@ -93,10 +93,13 @@ Policies propostas em `supabase/schema.sql`:
 - qualquer pessoa pode ler `products`
 - qualquer pessoa pode ler `product_progress`
 - qualquer pessoa pode inserir contribuição com status `pending`, desde que o produto exista, não esteja recebido e o valor respeite regras básicas do item
+- visitantes anônimos podem ler apenas `id`, `product_id`, `amount` e `status` de contribuições `confirmed`, para a view `product_progress` funcionar com `security_invoker`
 - visitantes não podem confirmar contribuição
 - visitantes não podem alterar status de produto
 - apenas usuários autenticados e autorizados em `allowed_admins` podem ler/atualizar contribuições
 - apenas usuários autorizados podem alterar status oficial de produto
+
+A view `product_progress` deve usar `security_invoker = true` para evitar o alerta `Security Definer View` do Supabase e fazer a leitura respeitar RLS.
 
 ## Chaves Supabase
 
@@ -170,6 +173,8 @@ O login dos moradores usa magic link. O frontend valida o e-mail contra a allowl
 
 O frontend envia `create_user: false` no pedido de magic link. Por isso, os usuários autorizados precisam existir previamente no Supabase Auth ou já terem sido criados/testados antes.
 
+Em `Authentication > Email Templates > Magic Link`, use `{{ .ConfirmationURL }}` como `href` do link principal. Se o template usar `{{ .SiteURL }}` diretamente, o redirect pode ignorar o `email_redirect_to` do frontend e abrir a raiz `https://danielcvaz-eng.github.io/`, causando 404 no GitHub Pages.
+
 ## Observações de deploy
 
 O projeto foi preparado para publicação estática em GitHub Pages.
@@ -212,6 +217,12 @@ Se o insert público de contribuição `pending` retornar erro de RLS, execute n
 
 ```text
 supabase/patch-allow-public-pending-contributions.sql
+```
+
+Se o Security Advisor apontar `Security Definer View` em `product_progress`, execute no Supabase:
+
+```text
+supabase/patch-security-invoker-product-progress.sql
 ```
 
 ## Limites operacionais do localStorage

@@ -1,6 +1,8 @@
 import { APP_CONFIG } from "./config.js";
 
 const { supabase } = APP_CONFIG;
+const PRODUCTION_HOSTNAME = "danielcvaz-eng.github.io";
+const PRODUCTION_REDIRECT_URL = "https://danielcvaz-eng.github.io/nosso-ape/";
 
 function trimRightSlash(value) {
   return String(value || "").replace(/\/+$/, "");
@@ -18,6 +20,30 @@ function normalizeRestUrl() {
   }
 
   return `${normalizeProjectUrl()}/rest/v1`;
+}
+
+function normalizeRedirectPath(pathname) {
+  const currentPath = pathname || "/";
+
+  if (currentPath === "/" || currentPath.endsWith("/")) {
+    return currentPath;
+  }
+
+  const lastSegment = currentPath.split("/").pop() || "";
+
+  if (lastSegment.includes(".")) {
+    return currentPath.replace(/\/[^/]*$/, "/") || "/";
+  }
+
+  return `${currentPath}/`;
+}
+
+function getMagicLinkRedirectUrl() {
+  if (window.location.hostname === PRODUCTION_HOSTNAME) {
+    return PRODUCTION_REDIRECT_URL;
+  }
+
+  return `${window.location.origin}${normalizeRedirectPath(window.location.pathname)}`;
 }
 
 export function isSupabaseConfigured() {
@@ -143,7 +169,7 @@ export async function supabaseAuth(path, options = {}) {
 }
 
 export async function requestMagicLink(email) {
-  const redirectTo = `${window.location.origin}${window.location.pathname}`;
+  const redirectTo = getMagicLinkRedirectUrl();
 
   await supabaseAuth("/otp", {
     method: "POST",

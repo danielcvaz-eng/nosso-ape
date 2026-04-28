@@ -379,6 +379,10 @@ Se você já aplicou uma versão anterior do schema e o insert público de contr
 
 - `supabase/patch-allow-public-pending-contributions.sql`
 
+Se o Security Advisor do Supabase apontar `Security Definer View` na view `product_progress`, execute:
+
+- `supabase/patch-security-invoker-product-progress.sql`
+
 ### Auth e Redirect URLs
 
 No Supabase, configure as URLs em:
@@ -404,6 +408,8 @@ http://localhost:8003/
 ```
 
 O login dos moradores usa magic link por e-mail. O frontend não cria usuários automaticamente; crie previamente os usuários autorizados no Supabase Auth ou mantenha apenas contas já testadas.
+
+No template do magic link, use `{{ .ConfirmationURL }}` no link principal. Se o template montar link manual com `{{ .SiteURL }}`, o usuário pode cair em `https://danielcvaz-eng.github.io/#access_token=...` e receber 404 por faltar `/nosso-ape/`.
 
 Admins permitidos no SQL:
 

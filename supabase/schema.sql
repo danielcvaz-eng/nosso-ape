@@ -170,7 +170,9 @@ begin
 end;
 $$;
 
-create or replace view public.product_progress as
+create or replace view public.product_progress
+with (security_invoker = true)
+as
 select
   products.id as product_id,
   coalesce(sum(contributions.amount) filter (where contributions.status = 'confirmed'), 0)::numeric(10, 2) as confirmed_amount,
@@ -234,6 +236,13 @@ with check (
   and rejection_reason is null
 );
 
+drop policy if exists "Public can read confirmed contribution progress inputs" on public.contributions;
+create policy "Public can read confirmed contribution progress inputs"
+on public.contributions
+for select
+to anon
+using (status = 'confirmed');
+
 drop policy if exists "Admins can read contributions" on public.contributions;
 create policy "Admins can read contributions"
 on public.contributions
@@ -264,6 +273,7 @@ grant usage on schema public to anon, authenticated;
 grant select on public.products to anon, authenticated;
 grant select on public.product_progress to anon, authenticated;
 grant insert on public.contributions to anon, authenticated;
+grant select (id, product_id, amount, status) on public.contributions to anon;
 grant select, update on public.products to authenticated;
 grant select, update on public.contributions to authenticated;
 grant select on public.allowed_admins to authenticated;
