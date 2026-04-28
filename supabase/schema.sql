@@ -73,6 +73,7 @@ create or replace function public.current_user_is_admin()
 returns boolean
 language sql
 stable
+security invoker
 set search_path = public
 as $$
   select exists (
@@ -85,6 +86,7 @@ $$;
 create or replace function public.confirm_contribution(contribution_id uuid)
 returns public.contributions
 language plpgsql
+security invoker
 set search_path = public
 as $$
 declare
@@ -140,6 +142,7 @@ $$;
 create or replace function public.reject_contribution(contribution_id uuid, reason text default null)
 returns public.contributions
 language plpgsql
+security invoker
 set search_path = public
 as $$
 declare
