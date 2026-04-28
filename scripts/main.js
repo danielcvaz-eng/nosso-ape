@@ -1,5 +1,15 @@
-import produtos from "../data/produtos.js";
 import { APP_CONFIG, LABELS, MODAL_STEPS } from "./config.js";
+import {
+  confirmContribution,
+  initializeAdminSession,
+  loadCatalogData,
+  loadPendingContributions,
+  logoutAdmin,
+  rejectContribution,
+  requestAdminLogin,
+  submitPendingContribution,
+  updateRemoteProductStatus
+} from "./api.js";
 import { clearPersistedState, loadPersistedState, savePersistedState } from "./storage.js";
 import { buildWhatsAppUrl, clamp, createSlug, escapeHtml, formatCurrency, normalizeText, safeExternalUrl, safeNumber } from "./utils.js";
 
@@ -14,7 +24,14 @@ const elements = {
   statusFilter: document.getElementById("status-filter"),
   clearFiltersButton: document.getElementById("clear-filters"),
   emptyState: document.getElementById("empty-state"),
+  backendStateNote: document.getElementById("backend-state-note"),
   residentToggle: document.getElementById("resident-toggle"),
+  residentPanel: document.getElementById("resident-panel"),
+  residentUser: document.getElementById("resident-user"),
+  pendingList: document.getElementById("pending-list"),
+  adminFeedback: document.getElementById("admin-feedback"),
+  refreshPendingButton: document.getElementById("refresh-pending"),
+  residentLogoutButton: document.getElementById("resident-logout"),
   localStateNote: document.getElementById("local-state-note"),
   resetDataButton: document.getElementById("reset-local-data"),
   giftModal: document.getElementById("gift-modal"),
@@ -49,7 +66,19 @@ const appState = {
   currentStep: "details",
   selectedProduct: null,
   flowData: null,
-  persisted: loadPersistedState(produtos)
+  products: [],
+  backendMode: "loading",
+  backendMessage: "Carregando catálogo...",
+  admin: {
+    configured: false,
+    isAdmin: false,
+    user: null
+  },
+  persisted: {
+    storageAvailable: true,
+    statuses: {},
+    contributions: {}
+  }
 };
 
 function persistState() {
@@ -59,13 +88,23 @@ function persistState() {
   });
 }
 
+function isSupabaseMode() {
+  return appState.backendMode === "supabase";
+}
+
 function getContribution(product) {
+  if (isSupabaseMode()) {
+    return clamp(safeNumber(product.confirmedAmount), 0, product.preco);
+  }
+
   const storedValue = safeNumber(appState.persisted.contributions[product.id]);
   return clamp(storedValue, 0, product.preco);
 }
 
 function getProductStatus(product, contributionValue = getContribution(product)) {
-  const manualStatus = appState.persisted.statuses[product.id] || product.status || "disponivel";
+  const manualStatus = isSupabaseMode()
+    ? product.status || "disponivel"
+    : appState.persisted.statuses[product.id] || product.status || "disponivel";
 
   if (product.tipo === "colaborativo" && contributionValue >= product.preco) {
     return "recebido";
@@ -75,7 +114,7 @@ function getProductStatus(product, contributionValue = getContribution(product))
 }
 
 function getProductsWithState() {
-  return produtos.map((product) => {
+  return appState.products.map((product) => {
     const collectedAmount = getContribution(product);
     const remainingAmount = Math.max(product.preco - collectedAmount, 0);
     const progressPercentage = product.preco > 0 ? Math.min((collectedAmount / product.preco) * 100, 100) : 0;
@@ -90,10 +129,21 @@ function getProductsWithState() {
   });
 }
 
-function updateProductStatus(productId, nextStatus) {
-  const product = produtos.find((item) => item.id === Number(productId));
+async function updateProductStatus(productId, nextStatus) {
+  const product = appState.products.find((item) => item.id === Number(productId));
 
   if (!product) {
+    return;
+  }
+
+  if (isSupabaseMode()) {
+    if (!appState.admin.isAdmin) {
+      showAdminFeedback("Faça login como morador autorizado para alterar status.");
+      return;
+    }
+
+    await updateRemoteProductStatus(productId, nextStatus);
+    await refreshCatalogFromBackend();
     return;
   }
 
@@ -111,7 +161,7 @@ function updateProductStatus(productId, nextStatus) {
 }
 
 function updateContribution(productId, totalValue) {
-  const product = produtos.find((item) => item.id === Number(productId));
+  const product = appState.products.find((item) => item.id === Number(productId));
 
   if (!product) {
     return;
@@ -168,7 +218,7 @@ function createStatusControl(product) {
 
   return `
     <label class="status-editor">
-      Status local do item
+      ${isSupabaseMode() ? "Status oficial do item" : "Status local do item"}
       <select data-status-product-id="${product.id}">
         <option value="disponivel" ${product.statusAtual === "disponivel" ? "selected" : ""}>Disponível</option>
         <option value="reservado" ${product.statusAtual === "reservado" ? "selected" : ""}>Reservado</option>
@@ -268,6 +318,11 @@ function createCategoryGroup(category, productsList) {
 }
 
 function updateLocalStateNote() {
+  if (isSupabaseMode()) {
+    elements.localStateNote.textContent = "Fonte oficial: Supabase. As contribuições entram como pendentes e só contam no progresso após confirmação manual dos moradores.";
+    return;
+  }
+
   const storedStatusesCount = Object.keys(appState.persisted.statuses).length;
   const storedContributionsCount = Object.keys(appState.persisted.contributions).length;
   const totalRecords = storedStatusesCount + storedContributionsCount;
@@ -285,15 +340,21 @@ function updateLocalStateNote() {
   elements.localStateNote.textContent = `${totalRecords} registro(s) local(is) ativos neste navegador. Eles servem como apoio operacional e não substituem a confirmação manual dos moradores.`;
 }
 
+function updateBackendStateNote() {
+  elements.backendStateNote.textContent = appState.backendMessage;
+  elements.backendStateNote.dataset.mode = appState.backendMode;
+}
+
 function renderCatalog() {
   const productsWithState = getProductsWithState();
   const filteredProducts = filterProducts(productsWithState);
   const groupedProducts = groupByCategory(filteredProducts);
   const categories = Object.keys(groupedProducts).sort();
 
-  elements.productsCounter.textContent = `${filteredProducts.length} de ${produtos.length} itens`;
-  elements.totalProducts.textContent = `${produtos.length} itens`;
+  elements.productsCounter.textContent = `${filteredProducts.length} de ${appState.products.length} itens`;
+  elements.totalProducts.textContent = `${appState.products.length} itens`;
   elements.emptyState.classList.toggle("hidden", filteredProducts.length > 0);
+  updateBackendStateNote();
   updateLocalStateNote();
 
   elements.productsList.innerHTML = categories
@@ -302,12 +363,23 @@ function renderCatalog() {
 }
 
 function populateCategoryFilter() {
-  const categories = [...new Set(produtos.map((product) => product.categoria))].sort();
+  elements.categoryFilter.innerHTML = '<option value="todos">Todas</option>';
+  const categories = [...new Set(appState.products.map((product) => product.categoria))].sort();
   const options = categories
     .map((category) => `<option value="${category}">${category}</option>`)
     .join("");
 
   elements.categoryFilter.insertAdjacentHTML("beforeend", options);
+}
+
+async function refreshCatalogFromBackend() {
+  const catalogData = await loadCatalogData();
+  appState.products = catalogData.products;
+  appState.backendMode = catalogData.mode;
+  appState.backendMessage = catalogData.message;
+  appState.persisted = loadPersistedState(appState.products);
+  populateCategoryFilter();
+  renderCatalog();
 }
 
 function getSelectedProduct(productId) {
@@ -515,14 +587,45 @@ function preparePixStep() {
   updateModalStep("pix");
 }
 
-function registerSimulatedPayment() {
+async function registerSimulatedPayment() {
   if (!elements.paymentConfirmation.checked) {
-    showFormError("Marque a confirmação para registrar esta intenção local no navegador.");
+    showFormError("Marque a confirmação para registrar esta intenção.");
     return;
   }
 
   if (!appState.selectedProduct || !appState.flowData) {
     showFormError("Não foi possível concluir esse fluxo. Feche o modal e tente novamente.");
+    return;
+  }
+
+  elements.primaryFlowButton.disabled = true;
+  elements.primaryFlowButton.textContent = "Registrando...";
+
+  if (isSupabaseMode()) {
+    try {
+      await submitPendingContribution({
+        product: appState.selectedProduct,
+        flowData: appState.flowData
+      });
+    } catch (error) {
+      console.error("[Nosso Ape] Erro ao registrar contribuição no Supabase.", error);
+      showFormError("Não foi possível registrar no Supabase agora. Tente novamente ou fale com os moradores pelo WhatsApp.");
+      setPrimaryButtonState();
+      elements.primaryFlowButton.textContent = MODAL_STEPS.pix.button;
+      return;
+    }
+
+    elements.successMessage.textContent = "Sua intenção foi enviada e ficou pendente para confirmação manual dos moradores. Se quiser, envie também a mensagem pronta no WhatsApp para avisar.";
+
+    try {
+      await refreshCatalogFromBackend();
+      appState.selectedProduct = getSelectedProduct(appState.selectedProduct.id);
+    } catch (error) {
+      console.warn("[Nosso Ape] Registro enviado, mas o catálogo não foi atualizado.", error);
+      elements.successMessage.textContent = "Sua intenção foi enviada e ficou pendente para confirmação manual dos moradores. Não foi possível atualizar o catálogo agora, mas não envie novamente para evitar duplicidade.";
+    }
+
+    updateModalStep("success");
     return;
   }
 
@@ -542,6 +645,7 @@ function registerSimulatedPayment() {
   }
 
   appState.selectedProduct = getSelectedProduct(appState.selectedProduct.id);
+  elements.successMessage.textContent = APP_CONFIG.finalGiftMessage;
   renderCatalog();
   updateModalStep("success");
 }
@@ -610,7 +714,108 @@ function resetFilters() {
   renderCatalog();
 }
 
-function toggleResidentMode() {
+function showAdminFeedback(message) {
+  if (!elements.adminFeedback) {
+    return;
+  }
+
+  elements.adminFeedback.textContent = message;
+}
+
+function renderPendingContributions(contributions = []) {
+  if (!elements.pendingList) {
+    return;
+  }
+
+  if (!appState.admin.isAdmin) {
+    elements.residentPanel.classList.add("hidden");
+    elements.pendingList.innerHTML = "";
+    return;
+  }
+
+  elements.residentPanel.classList.remove("hidden");
+  elements.residentUser.textContent = `Logado como ${appState.admin.user?.email || "morador autorizado"}.`;
+
+  if (contributions.length === 0) {
+    elements.pendingList.innerHTML = '<p class="empty-admin-state">Nenhuma contribuição pendente no momento.</p>';
+    return;
+  }
+
+  elements.pendingList.innerHTML = contributions.map((contribution) => {
+    const productName = contribution.products?.name || `Produto #${contribution.product_id}`;
+    const productCategory = contribution.products?.category || "Categoria não informada";
+    const message = contribution.giver_message
+      ? `<p class="pending-message">"${escapeHtml(contribution.giver_message)}"</p>`
+      : "";
+
+    return `
+      <article class="pending-card">
+        <div>
+          <p class="eyebrow">Pendente</p>
+          <h3>${escapeHtml(productName)}</h3>
+          <p>${escapeHtml(productCategory)} • ${escapeHtml(LABELS.tipo[contribution.contribution_type] || contribution.contribution_type)}</p>
+          <p><strong>${escapeHtml(contribution.giver_name)}</strong> registrou ${formatCurrency(contribution.amount)} via Pix.</p>
+          ${message}
+        </div>
+        <div class="pending-actions">
+          <button class="gift-button" type="button" data-confirm-contribution="${contribution.id}">Confirmar</button>
+          <button class="ghost-button" type="button" data-reject-contribution="${contribution.id}">Rejeitar</button>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+async function refreshPendingContributions() {
+  if (!isSupabaseMode() || !appState.admin.isAdmin) {
+    return;
+  }
+
+  try {
+    showAdminFeedback("Carregando contribuições pendentes...");
+    const contributions = await loadPendingContributions();
+    renderPendingContributions(contributions);
+    showAdminFeedback("Lista de pendências atualizada.");
+  } catch (error) {
+    console.error("[Nosso Ape] Erro ao carregar pendências.", error);
+    showAdminFeedback("Não foi possível carregar as pendências. Verifique a sessão e as policies do Supabase.");
+  }
+}
+
+async function activateRemoteResidentMode() {
+  if (appState.admin.isAdmin) {
+    appState.residentModeEnabled = !appState.residentModeEnabled;
+    elements.residentToggle.setAttribute("aria-pressed", String(appState.residentModeEnabled));
+    elements.residentToggle.textContent = appState.residentModeEnabled
+      ? "Sair do modo moradores"
+      : "Modo moradores";
+    document.body.classList.toggle("resident-mode", appState.residentModeEnabled);
+    renderCatalog();
+    await refreshPendingContributions();
+    return;
+  }
+
+  const email = window.prompt("Digite o e-mail autorizado para receber o magic link de moradores:");
+
+  if (!email) {
+    return;
+  }
+
+  try {
+    await requestAdminLogin(email);
+    elements.backendStateNote.textContent = "Enviamos um magic link para o e-mail informado. Abra o link no mesmo navegador para entrar no modo moradores.";
+  } catch (error) {
+    console.error("[Nosso Ape] Erro no login admin.", error);
+    elements.backendStateNote.textContent = error.message || "Não foi possível iniciar o login dos moradores.";
+  }
+}
+
+async function toggleResidentMode() {
+  if (isSupabaseMode()) {
+    await activateRemoteResidentMode();
+    return;
+  }
+
   appState.residentModeEnabled = !appState.residentModeEnabled;
   elements.residentToggle.setAttribute("aria-pressed", String(appState.residentModeEnabled));
   elements.residentToggle.textContent = appState.residentModeEnabled
@@ -633,6 +838,21 @@ function bindCatalogEvents() {
   elements.catalogControls.addEventListener("change", renderCatalog);
   elements.clearFiltersButton.addEventListener("click", resetFilters);
   elements.residentToggle.addEventListener("click", toggleResidentMode);
+  elements.refreshPendingButton.addEventListener("click", refreshPendingContributions);
+  elements.residentLogoutButton.addEventListener("click", () => {
+    logoutAdmin();
+    appState.admin = {
+      configured: isSupabaseMode(),
+      isAdmin: false,
+      user: null
+    };
+    appState.residentModeEnabled = false;
+    elements.residentPanel.classList.add("hidden");
+    elements.residentToggle.setAttribute("aria-pressed", "false");
+    elements.residentToggle.textContent = isSupabaseMode() ? "Modo moradores" : "Modo moradores local";
+    document.body.classList.remove("resident-mode");
+    renderCatalog();
+  });
   elements.resetDataButton.addEventListener("click", () => {
     const confirmed = window.confirm("Isso vai limpar os registros locais deste navegador, incluindo status e contribuições simuladas. Deseja continuar?");
 
@@ -644,15 +864,18 @@ function bindCatalogEvents() {
     renderCatalog();
   });
 
-  elements.productsList.addEventListener("change", (event) => {
+  elements.productsList.addEventListener("change", async (event) => {
     const statusSelect = event.target.closest("[data-status-product-id]");
 
     if (!statusSelect) {
       return;
     }
 
-    updateProductStatus(statusSelect.dataset.statusProductId, statusSelect.value);
-    renderCatalog();
+    await updateProductStatus(statusSelect.dataset.statusProductId, statusSelect.value);
+
+    if (!isSupabaseMode()) {
+      renderCatalog();
+    }
   });
 
   elements.productsList.addEventListener("click", (event) => {
@@ -663,6 +886,34 @@ function bindCatalogEvents() {
     }
 
     openModal(getSelectedProduct(giftButton.dataset.productId));
+  });
+
+  elements.pendingList.addEventListener("click", async (event) => {
+    const confirmButton = event.target.closest("[data-confirm-contribution]");
+    const rejectButton = event.target.closest("[data-reject-contribution]");
+
+    if (!confirmButton && !rejectButton) {
+      return;
+    }
+
+    try {
+      if (confirmButton) {
+        await confirmContribution(confirmButton.dataset.confirmContribution);
+        showAdminFeedback("Contribuição confirmada.");
+      }
+
+      if (rejectButton) {
+        const reason = window.prompt("Motivo da rejeição (opcional):") || "";
+        await rejectContribution(rejectButton.dataset.rejectContribution, reason);
+        showAdminFeedback("Contribuição rejeitada.");
+      }
+
+      await refreshCatalogFromBackend();
+      await refreshPendingContributions();
+    } catch (error) {
+      console.error("[Nosso Ape] Erro ao atualizar contribuição.", error);
+      showAdminFeedback("Não foi possível atualizar essa contribuição. Verifique a sessão e tente novamente.");
+    }
   });
 }
 
@@ -685,7 +936,7 @@ function bindModalEvents() {
     }
   });
 
-  elements.giftForm.addEventListener("submit", (event) => {
+  elements.giftForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     if (appState.currentStep === "details") {
@@ -694,7 +945,7 @@ function bindModalEvents() {
     }
 
     if (appState.currentStep === "pix") {
-      registerSimulatedPayment();
+      await registerSimulatedPayment();
       return;
     }
 
@@ -713,7 +964,28 @@ function initializeStaticTexts() {
   updateSupportLinks();
 }
 
-function bootstrap() {
+async function initializeBackend() {
+  const catalogData = await loadCatalogData();
+
+  appState.products = catalogData.products;
+  appState.backendMode = catalogData.mode;
+  appState.backendMessage = catalogData.message;
+  appState.persisted = loadPersistedState(appState.products);
+
+  if (isSupabaseMode()) {
+    appState.admin = await initializeAdminSession();
+    elements.residentToggle.textContent = "Modo moradores";
+
+    if (appState.admin.user && !appState.admin.isAdmin) {
+      appState.backendMessage = "Você está logado, mas este e-mail não está autorizado como morador.";
+    }
+  } else {
+    elements.residentToggle.textContent = "Modo moradores local";
+  }
+}
+
+async function bootstrap() {
+  await initializeBackend();
   populateCategoryFilter();
   initializeStaticTexts();
   renderCatalog();
@@ -721,4 +993,9 @@ function bootstrap() {
   bindModalEvents();
 }
 
-bootstrap();
+bootstrap().catch((error) => {
+  console.error("[Nosso Ape] Erro ao iniciar aplicação.", error);
+  appState.backendMode = "local-fallback";
+  appState.backendMessage = "Ocorreu um erro ao iniciar a integração. Recarregue a página ou tente novamente mais tarde.";
+  renderCatalog();
+});

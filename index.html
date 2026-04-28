@@ -83,8 +83,8 @@
           </article>
 
           <article class="trust-card">
-            <h3>2. Registro local da intenção</h3>
-            <p>O botão <strong>Registrar intenção local</strong> salva um registro apenas neste navegador para apoiar o acompanhamento.</p>
+            <h3>2. Registro da intenção</h3>
+            <p>O botão de registro salva sua intenção. Com Supabase ativo, ela fica pendente para confirmação dos moradores.</p>
           </article>
 
           <article class="trust-card">
@@ -146,11 +146,31 @@
           </button>
         </form>
 
-        <p class="local-state-note" id="local-state-note" aria-live="polite"></p>
+        <div class="state-notes">
+          <p class="backend-state-note" id="backend-state-note" aria-live="polite"></p>
+          <p class="local-state-note" id="local-state-note" aria-live="polite"></p>
+        </div>
         <div class="catalog-groups" id="products-list"></div>
         <p class="empty-state hidden" id="empty-state">
           Nenhum item encontrado com esses filtros. Tente buscar por outro nome ou limpar os filtros.
         </p>
+      </section>
+
+      <section class="resident-panel hidden" id="resident-panel" aria-labelledby="resident-panel-title">
+        <div class="section-header compact">
+          <div>
+            <p class="eyebrow">Área dos moradores</p>
+            <h2 id="resident-panel-title">Contribuições pendentes</h2>
+            <p id="resident-user">Nenhum morador autenticado.</p>
+          </div>
+          <div class="resident-panel-actions">
+            <button class="ghost-button" id="refresh-pending" type="button">Atualizar</button>
+            <button class="ghost-button" id="resident-logout" type="button">Sair</button>
+          </div>
+        </div>
+
+        <p class="admin-feedback" id="admin-feedback" aria-live="polite"></p>
+        <div class="pending-list" id="pending-list"></div>
       </section>
     </main>
 
@@ -181,7 +201,7 @@
         <p class="eyebrow" id="modal-step-label">Quero presentear</p>
         <h2 id="modal-title">Confirmar intenção de presente</h2>
         <p id="modal-description">
-          Preencha rapidinho para ver a chave Pix e registrar sua intenção local.
+          Preencha rapidinho para ver a chave Pix e registrar sua intenção.
         </p>
       </div>
 
@@ -255,7 +275,7 @@
 
           <label class="confirm-payment">
             <input id="payment-confirmation" type="checkbox">
-            Já fiz o Pix e quero registrar uma intenção local neste navegador
+            Já fiz o Pix e quero registrar minha intenção para conferência dos moradores
           </label>
         </div>
 

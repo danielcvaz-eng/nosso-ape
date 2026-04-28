@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const baseUrl = process.env.BASE_URL || "http://localhost:8000";
 
 test.beforeEach(async ({ page }) => {
-  await page.goto(baseUrl);
+  await page.goto(`${baseUrl}?backend=local`);
   await page.evaluate(() => window.localStorage.clear());
   await page.reload();
 });
@@ -36,9 +36,9 @@ test("fluxo de presente inteiro registra intencao local e persiste", async ({ pa
   await expect(page.getByText("daniel.vazbtg@gmail.com")).toBeVisible();
 
   await page.getByLabel(/já fiz o pix/i).check();
-  await page.getByRole("button", { name: "Registrar intenção local" }).click();
+  await page.getByRole("button", { name: "Registrar intenção" }).click();
 
-  await expect(page.getByRole("heading", { name: /registro local concluído/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /registro enviado/i })).toBeVisible();
   await page.getByLabel("Fechar modal").click();
 
   await expect(page.getByRole("button", { name: "Item recebido" }).first()).toBeDisabled();
@@ -59,7 +59,7 @@ test("fluxo colaborativo valida valor e atualiza progresso", async ({ page }) =>
   await page.getByLabel("Valor da colaboração").fill("50,00");
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.getByLabel(/já fiz o pix/i).check();
-  await page.getByRole("button", { name: "Registrar intenção local" }).click();
+  await page.getByRole("button", { name: "Registrar intenção" }).click();
   await page.getByLabel("Fechar modal").click();
 
   await expect(page.getByText("Arrecadado: R$ 50,00").first()).toBeVisible();

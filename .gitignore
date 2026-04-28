@@ -26,3 +26,6 @@ playwright/.cache/
 # Arquivos de sistema operacional
 .DS_Store
 Thumbs.db
+
+# Arquivos locais do VS Code
+docs/*.code-workspace
