@@ -4,8 +4,44 @@ const { supabase } = APP_CONFIG;
 const PRODUCTION_HOSTNAME = "danielcvaz-eng.github.io";
 const PRODUCTION_REDIRECT_URL = "https://danielcvaz-eng.github.io/nosso-ape/";
 
+export class SupabaseRequestError extends Error {
+  constructor(scope, response, details) {
+    const message = extractSupabaseErrorMessage(details) || response.statusText || "Erro Supabase";
+
+    super(`${scope} ${response.status}: ${message}`);
+    this.name = "SupabaseRequestError";
+    this.scope = scope;
+    this.status = response.status;
+    this.details = details;
+  }
+}
+
 function trimRightSlash(value) {
   return String(value || "").replace(/\/+$/, "");
+}
+
+function parseResponseText(responseText) {
+  if (!responseText) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(responseText);
+  } catch {
+    return responseText;
+  }
+}
+
+function extractSupabaseErrorMessage(details) {
+  if (!details) {
+    return "";
+  }
+
+  if (typeof details === "string") {
+    return details;
+  }
+
+  return details.message || details.msg || details.error_description || details.error || "";
 }
 
 function normalizeProjectUrl() {
@@ -118,18 +154,13 @@ export async function supabaseRest(path, options = {}) {
     headers
   });
 
-  if (!response.ok) {
-    const details = await response.text();
-    throw new Error(`Supabase REST ${response.status}: ${details}`);
-  }
-
   const responseText = await response.text();
 
-  if (!responseText) {
-    return null;
+  if (!response.ok) {
+    throw new SupabaseRequestError("Supabase REST", response, parseResponseText(responseText));
   }
 
-  return JSON.parse(responseText);
+  return parseResponseText(responseText);
 }
 
 export async function supabaseAuth(path, options = {}) {
@@ -154,18 +185,13 @@ export async function supabaseAuth(path, options = {}) {
     headers
   });
 
-  if (!response.ok) {
-    const details = await response.text();
-    throw new Error(`Supabase Auth ${response.status}: ${details}`);
-  }
-
   const responseText = await response.text();
 
-  if (!responseText) {
-    return null;
+  if (!response.ok) {
+    throw new SupabaseRequestError("Supabase Auth", response, parseResponseText(responseText));
   }
 
-  return JSON.parse(responseText);
+  return parseResponseText(responseText);
 }
 
 export async function requestMagicLink(email) {

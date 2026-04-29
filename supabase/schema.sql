@@ -93,9 +93,55 @@ declare
   target_contribution public.contributions;
   target_product public.products;
   confirmed_total numeric(10, 2);
+  next_total numeric(10, 2);
 begin
   if not public.current_user_is_admin() then
-    raise exception 'not authorized';
+    raise exception 'not authorized' using errcode = '42501';
+  end if;
+
+  select * into target_contribution
+  from public.contributions
+  where id = contribution_id
+    and status = 'pending'
+  for update;
+
+  if target_contribution.id is null then
+    raise exception 'pending contribution not found';
+  end if;
+
+  select * into target_product
+  from public.products
+  where id = target_contribution.product_id
+  for update;
+
+  if target_product.id is null then
+    raise exception 'product not found';
+  end if;
+
+  if target_product.status = 'recebido' then
+    raise exception 'product already received';
+  end if;
+
+  if target_product.type = 'inteiro' then
+    if target_contribution.contribution_type <> 'inteiro' or target_contribution.amount <> target_product.price then
+      raise exception 'invalid whole contribution amount';
+    end if;
+  else
+    if target_contribution.contribution_type <> 'colaborativo' then
+      raise exception 'invalid collaborative contribution type';
+    end if;
+
+    select coalesce(sum(amount), 0)
+    into confirmed_total
+    from public.contributions
+    where product_id = target_product.id
+      and status = 'confirmed';
+
+    next_total := confirmed_total + target_contribution.amount;
+
+    if next_total > target_product.price then
+      raise exception 'contribution exceeds remaining amount';
+    end if;
   end if;
 
   update public.contributions
@@ -113,22 +159,12 @@ begin
     raise exception 'pending contribution not found';
   end if;
 
-  select * into target_product
-  from public.products
-  where id = target_contribution.product_id;
-
   if target_product.type = 'inteiro' then
     update public.products
     set status = 'recebido'
     where id = target_product.id;
   else
-    select coalesce(sum(amount), 0)
-    into confirmed_total
-    from public.contributions
-    where product_id = target_product.id
-      and status = 'confirmed';
-
-    if confirmed_total >= target_product.price then
+    if next_total >= target_product.price then
       update public.products
       set status = 'recebido'
       where id = target_product.id;
@@ -149,7 +185,7 @@ declare
   target_contribution public.contributions;
 begin
   if not public.current_user_is_admin() then
-    raise exception 'not authorized';
+    raise exception 'not authorized' using errcode = '42501';
   end if;
 
   update public.contributions

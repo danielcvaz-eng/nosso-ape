@@ -1,30 +1,15 @@
--- Patch: reduzir warnings do Security Advisor em funcoes publicas.
--- Execute no SQL Editor do Supabase depois do schema.sql.
+-- Patch: estabilizar confirmacao/rejeicao manual no modo moradores.
+-- Execute no SQL Editor do Supabase depois dos patches anteriores.
 
-create or replace function public.set_updated_at()
-returns trigger
-language plpgsql
-set search_path = public
-as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$;
+drop policy if exists "Public can read confirmed contribution progress inputs" on public.contributions;
 
-create or replace function public.current_user_is_admin()
-returns boolean
-language sql
-stable
-security invoker
-set search_path = public
-as $$
-  select exists (
-    select 1
-    from public.allowed_admins
-    where email = lower(coalesce(auth.jwt() ->> 'email', ''))
-  );
-$$;
+create policy "Public can read confirmed contribution progress inputs"
+on public.contributions
+for select
+to anon
+using (status = 'confirmed');
+
+grant select (id, product_id, amount, status) on public.contributions to anon;
 
 create or replace function public.confirm_contribution(contribution_id uuid)
 returns public.contributions
@@ -150,14 +135,11 @@ begin
 end;
 $$;
 
-alter function public.current_user_is_admin() security invoker;
 alter function public.confirm_contribution(uuid) security invoker;
 alter function public.reject_contribution(uuid, text) security invoker;
 
-drop policy if exists "Admins can read allowed admins" on public.allowed_admins;
+revoke all on function public.confirm_contribution(uuid) from public, anon;
+revoke all on function public.reject_contribution(uuid, text) from public, anon;
 
-create policy "Admins can read allowed admins"
-on public.allowed_admins
-for select
-to authenticated
-using (email = lower(coalesce(auth.jwt() ->> 'email', '')));
+grant execute on function public.confirm_contribution(uuid) to authenticated;
+grant execute on function public.reject_contribution(uuid, text) to authenticated;

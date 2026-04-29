@@ -40,9 +40,10 @@ export async function loadCatalogData() {
   }
 
   try {
+    const publicAccess = { accessToken: APP_CONFIG.supabase.anonKey };
     const [productRows, progressRows] = await Promise.all([
-      supabaseRest("/products?select=*&order=id.asc"),
-      supabaseRest("/product_progress?select=*")
+      supabaseRest("/products?select=*&order=id.asc", publicAccess),
+      supabaseRest("/product_progress?select=*", publicAccess)
     ]);
 
     const progressMap = buildProgressMap(progressRows);
@@ -95,7 +96,22 @@ export async function initializeAdminSession() {
     };
   }
 
-  const session = await parseAuthRedirect();
+  let session;
+
+  try {
+    session = await parseAuthRedirect();
+  } catch (error) {
+    console.warn("[Nosso Ape] Não foi possível recuperar a sessão admin.", error);
+    clearSession();
+    return {
+      configured: true,
+      session: null,
+      user: null,
+      isAdmin: false,
+      error
+    };
+  }
+
   const accessToken = session?.accessToken;
 
   if (!accessToken) {

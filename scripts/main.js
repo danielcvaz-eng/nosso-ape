@@ -722,6 +722,92 @@ function showAdminFeedback(message) {
   elements.adminFeedback.textContent = message;
 }
 
+function showBackendFeedback(message) {
+  appState.backendMessage = message;
+  elements.backendStateNote.textContent = message;
+}
+
+function errorDetailsToText(error) {
+  const details = error?.details;
+
+  if (!details) {
+    return error?.message || "";
+  }
+
+  if (typeof details === "string") {
+    return `${error?.message || ""} ${details}`;
+  }
+
+  return `${error?.message || ""} ${details.message || ""} ${details.hint || ""} ${details.details || ""} ${details.code || ""}`;
+}
+
+function describeAdminError(error) {
+  const errorText = normalizeText(errorDetailsToText(error));
+
+  if (error?.status === 401 || errorText.includes("jwt") || errorText.includes("expired")) {
+    return "Sua sessão expirou ou ficou inválida. Clique em Sair e peça um novo magic link.";
+  }
+
+  if (
+    error?.status === 403
+    || errorText.includes("not authorized")
+    || errorText.includes("permission denied")
+    || errorText.includes("row level security")
+    || errorText.includes("rls")
+  ) {
+    return "Seu usuário não tem permissão para essa ação. Confirme se o e-mail logado está em allowed_admins e se os patches RLS foram aplicados no Supabase.";
+  }
+
+  if (errorText.includes("pending contribution not found")) {
+    return "Essa contribuição não está mais pendente. Atualize a lista antes de tentar novamente.";
+  }
+
+  if (errorText.includes("product already received")) {
+    return "Este item já está marcado como recebido. Atualize a lista antes de confirmar outra contribuição.";
+  }
+
+  if (errorText.includes("contribution exceeds remaining amount")) {
+    return "Essa contribuição ultrapassa o valor restante do item. Atualize a lista e confira o Pix manualmente.";
+  }
+
+  if (errorText.includes("failed to fetch") || errorText.includes("network")) {
+    return "Não foi possível conectar ao Supabase agora. Verifique a internet e tente novamente.";
+  }
+
+  return "Não foi possível concluir a ação. Veja o console do navegador para o erro técnico e tente atualizar a lista.";
+}
+
+async function refreshAdminAuthorization() {
+  const admin = await initializeAdminSession();
+  appState.admin = {
+    configured: admin.configured,
+    isAdmin: admin.isAdmin,
+    user: admin.user
+  };
+
+  if (!admin.isAdmin) {
+    showBackendFeedback(admin.error
+      ? describeAdminError(admin.error)
+      : "Faça login novamente como morador autorizado para confirmar ou rejeitar contribuições.");
+    appState.residentModeEnabled = false;
+    elements.residentPanel.classList.add("hidden");
+    elements.residentToggle.setAttribute("aria-pressed", "false");
+    elements.residentToggle.textContent = isSupabaseMode() ? "Modo moradores" : "Modo moradores local";
+    document.body.classList.remove("resident-mode");
+    renderCatalog();
+  }
+
+  return admin;
+}
+
+function setPendingActionsDisabled(disabled) {
+  elements.pendingList
+    .querySelectorAll("[data-confirm-contribution], [data-reject-contribution]")
+    .forEach((button) => {
+      button.disabled = disabled;
+    });
+}
+
 function renderPendingContributions(contributions = []) {
   if (!elements.pendingList) {
     return;
@@ -776,9 +862,11 @@ async function refreshPendingContributions() {
     const contributions = await loadPendingContributions();
     renderPendingContributions(contributions);
     showAdminFeedback("Lista de pendências atualizada.");
+    return true;
   } catch (error) {
     console.error("[Nosso Ape] Erro ao carregar pendências.", error);
-    showAdminFeedback("Não foi possível carregar as pendências. Verifique a sessão e as policies do Supabase.");
+    showAdminFeedback(describeAdminError(error));
+    return false;
   }
 }
 
@@ -871,10 +959,16 @@ function bindCatalogEvents() {
       return;
     }
 
-    await updateProductStatus(statusSelect.dataset.statusProductId, statusSelect.value);
+    try {
+      await updateProductStatus(statusSelect.dataset.statusProductId, statusSelect.value);
 
-    if (!isSupabaseMode()) {
-      renderCatalog();
+      if (!isSupabaseMode()) {
+        renderCatalog();
+      }
+    } catch (error) {
+      console.error("[Nosso Ape] Erro ao alterar status do produto.", error);
+      showAdminFeedback(describeAdminError(error));
+      await refreshCatalogFromBackend();
     }
   });
 
@@ -896,23 +990,45 @@ function bindCatalogEvents() {
       return;
     }
 
+    setPendingActionsDisabled(true);
+
     try {
+      const admin = await refreshAdminAuthorization();
+
+      if (!admin.isAdmin) {
+        showAdminFeedback(admin.error ? describeAdminError(admin.error) : "Faça login novamente como morador autorizado para confirmar ou rejeitar contribuições.");
+        return;
+      }
+
       if (confirmButton) {
+        showAdminFeedback("Confirmando contribuição...");
         await confirmContribution(confirmButton.dataset.confirmContribution);
-        showAdminFeedback("Contribuição confirmada.");
       }
 
       if (rejectButton) {
-        const reason = window.prompt("Motivo da rejeição (opcional):") || "";
+        const reason = window.prompt("Motivo da rejeição (opcional):");
+
+        if (reason === null) {
+          showAdminFeedback("Rejeição cancelada. Nenhuma contribuição foi alterada.");
+          return;
+        }
+
+        showAdminFeedback("Rejeitando contribuição...");
         await rejectContribution(rejectButton.dataset.rejectContribution, reason);
-        showAdminFeedback("Contribuição rejeitada.");
       }
 
       await refreshCatalogFromBackend();
-      await refreshPendingContributions();
+      const pendingListUpdated = await refreshPendingContributions();
+      const actionText = confirmButton ? "confirmada" : "rejeitada";
+
+      showAdminFeedback(pendingListUpdated
+        ? `Contribuição ${actionText} e lista atualizada.`
+        : `Contribuição ${actionText}, mas não foi possível atualizar a lista. Clique em Atualizar antes da próxima ação.`);
     } catch (error) {
       console.error("[Nosso Ape] Erro ao atualizar contribuição.", error);
-      showAdminFeedback("Não foi possível atualizar essa contribuição. Verifique a sessão e tente novamente.");
+      showAdminFeedback(describeAdminError(error));
+    } finally {
+      setPendingActionsDisabled(false);
     }
   });
 }

@@ -103,6 +103,17 @@ Policies propostas em `supabase/schema.sql`:
 A view `product_progress` deve usar `security_invoker = true` para evitar o alerta `Security Definer View` do Supabase e fazer a leitura respeitar RLS.
 As funções RPC públicas devem evitar `SECURITY DEFINER`; a autorização acontece por RLS e pela função `current_user_is_admin()` como invoker.
 
+O catálogo público força a leitura de `products` e `product_progress` com o token `anon`, mesmo quando existe uma sessão de morador no navegador. Isso evita que uma sessão autenticada inválida ou não autorizada quebre o catálogo público. A sessão autenticada só deve ser usada para operações administrativas, como listar pendências, confirmar, rejeitar e alterar status oficial.
+
+As funções de confirmação precisam revalidar os dados antes de alterar o banco:
+
+- usuário atual é admin;
+- contribuição existe e ainda está `pending`;
+- produto existe;
+- produto ainda não está `recebido`;
+- tipo e valor da contribuição combinam com o produto;
+- item colaborativo não ultrapassa o valor restante confirmado.
+
 ## Chaves Supabase
 
 Anon/publishable key:
@@ -231,6 +242,34 @@ Se o Security Advisor apontar warnings em funções públicas, execute no Supaba
 
 ```text
 supabase/patch-security-advisor-function-warnings.sql
+```
+
+Se o modo moradores falhar em confirmação/rejeição depois dos patches de segurança, execute no Supabase:
+
+```text
+supabase/patch-admin-confirmation-stability.sql
+```
+
+Esse patch mantém as funções como `security invoker`, preserva RLS e reforça as validações internas de confirmação manual.
+
+## Erros comuns no modo moradores
+
+- `401`: sessão expirada, token inválido ou magic link antigo. Faça logout e peça novo magic link.
+- `403`, `not authorized`, `permission denied` ou erro de RLS: usuário não está autorizado, usuário não existe em Supabase Auth, e-mail não está em `allowed_admins` ou os patches SQL não foram aplicados.
+- `pending contribution not found`: a contribuição já não está pendente ou a lista está desatualizada.
+- `product already received`: item já foi marcado como recebido.
+- `contribution exceeds remaining amount`: a confirmação ultrapassaria o valor restante de um item colaborativo.
+
+Para diagnosticar, abra o DevTools do navegador e confira a chamada:
+
+```text
+/rest/v1/rpc/confirm_contribution
+```
+
+ou:
+
+```text
+/rest/v1/rpc/reject_contribution
 ```
 
 ## Limites operacionais do localStorage

@@ -387,6 +387,12 @@ Se o Security Advisor apontar warnings de `SECURITY DEFINER` em funções públi
 
 - `supabase/patch-security-advisor-function-warnings.sql`
 
+Se o modo moradores falhar ao confirmar/rejeitar contribuições, ou se você aplicou os patches de segurança depois de já ter dados reais, execute também:
+
+- `supabase/patch-admin-confirmation-stability.sql`
+
+Esse patch reforça as validações das funções `confirm_contribution` e `reject_contribution` sem abrir RLS e sem transformar o site em confirmação automática de Pix.
+
 ### Auth e Redirect URLs
 
 No Supabase, configure as URLs em:
@@ -435,6 +441,27 @@ Fluxo correto:
 5. Morador confere o Pix manualmente.
 6. Morador confirma ou rejeita a contribuição.
 7. Apenas contribuições confirmadas entram no progresso oficial.
+
+### Diagnóstico rápido do modo moradores
+
+Se confirmar ou rejeitar contribuição falhar:
+
+1. Abra o DevTools do navegador.
+2. Vá em `Console` e `Network`.
+3. Tente confirmar novamente.
+4. Procure a chamada:
+
+```text
+/rest/v1/rpc/confirm_contribution
+```
+
+Interpretação rápida:
+
+- `401`: sessão expirada ou magic link inválido; saia e peça novo link.
+- `403` ou `not authorized`: e-mail não está autorizado, usuário não existe no Supabase Auth ou RLS/policies não foram aplicadas.
+- `pending contribution not found`: a contribuição já foi confirmada/rejeitada ou a lista está desatualizada.
+- `product already received`: o item já está como recebido; atualize a lista antes de confirmar.
+- `contribution exceeds remaining amount`: a contribuição ultrapassa o valor restante do item colaborativo.
 
 ## Publicação em GitHub Pages
 
