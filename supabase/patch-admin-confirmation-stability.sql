@@ -11,6 +11,12 @@ using (status = 'confirmed');
 
 grant select (id, product_id, amount, status) on public.contributions to anon;
 
+grant usage on schema public to authenticated;
+grant select, update on public.products to authenticated;
+grant select, update on public.contributions to authenticated;
+grant select on public.allowed_admins to authenticated;
+grant execute on function public.current_user_is_admin() to authenticated;
+
 create or replace function public.confirm_contribution(contribution_id uuid)
 returns public.contributions
 language plpgsql
