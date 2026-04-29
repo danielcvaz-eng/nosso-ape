@@ -188,6 +188,19 @@ O frontend envia `create_user: false` no pedido de magic link. Por isso, os usu�
 
 Em `Authentication > Email Templates > Magic Link`, use `{{ .ConfirmationURL }}` como `href` do link principal. Se o template usar `{{ .SiteURL }}` diretamente, o redirect pode ignorar o `email_redirect_to` do frontend e abrir a raiz `https://danielcvaz-eng.github.io/`, causando 404 no GitHub Pages.
 
+O frontend envia o destino do magic link de duas formas para reduzir falhas:
+
+- query string `redirect_to`
+- corpo da requisição em `options.email_redirect_to`
+
+Em produção, o destino esperado é sempre:
+
+```text
+https://danielcvaz-eng.github.io/nosso-ape/
+```
+
+Se o e-mail ainda abrir `http://localhost:8000`, o link provavelmente foi gerado antes da correção ou o `Site URL`/template do Supabase ainda está apontando para localhost. Peça um novo magic link depois de corrigir a configuração.
+
 ## Observações de deploy
 
 O projeto foi preparado para publicação estática em GitHub Pages.

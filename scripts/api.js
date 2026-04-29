@@ -157,7 +157,7 @@ export async function requestAdminLogin(email) {
     throw new Error("Este e-mail não está autorizado como morador/admin.");
   }
 
-  await requestMagicLink(normalizedEmail);
+  return requestMagicLink(normalizedEmail);
 }
 
 export async function loadPendingContributions() {

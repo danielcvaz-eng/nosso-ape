@@ -421,6 +421,13 @@ O login dos moradores usa magic link por e-mail. O frontend não cria usuários 
 
 No template do magic link, use `{{ .ConfirmationURL }}` no link principal. Se o template montar link manual com `{{ .SiteURL }}`, o usuário pode cair em `https://danielcvaz-eng.github.io/#access_token=...` e receber 404 por faltar `/nosso-ape/`.
 
+Se o magic link abrir em `http://localhost:8000` mesmo tendo sido pedido pelo site publicado, revise no Supabase:
+
+- `Authentication > URL Configuration > Site URL` deve ser `https://danielcvaz-eng.github.io/nosso-ape/`
+- `Redirect URLs` deve incluir `https://danielcvaz-eng.github.io/nosso-ape/`
+- o template de magic link deve usar `{{ .ConfirmationURL }}` no `href`
+- depois de alterar, peça um novo magic link; links antigos continuam apontando para o destino antigo
+
 Admins permitidos no SQL:
 
 ```text

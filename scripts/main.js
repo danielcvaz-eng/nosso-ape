@@ -890,8 +890,8 @@ async function activateRemoteResidentMode() {
   }
 
   try {
-    await requestAdminLogin(email);
-    elements.backendStateNote.textContent = "Enviamos um magic link para o e-mail informado. Abra o link no mesmo navegador para entrar no modo moradores.";
+    const redirectTo = await requestAdminLogin(email);
+    elements.backendStateNote.textContent = `Enviamos um magic link para o e-mail informado. O link deve abrir em: ${redirectTo}`;
   } catch (error) {
     console.error("[Nosso Ape] Erro no login admin.", error);
     elements.backendStateNote.textContent = error.message || "Não foi possível iniciar o login dos moradores.";

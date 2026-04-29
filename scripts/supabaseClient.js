@@ -196,17 +196,21 @@ export async function supabaseAuth(path, options = {}) {
 
 export async function requestMagicLink(email) {
   const redirectTo = getMagicLinkRedirectUrl();
+  const redirectQuery = new URLSearchParams({ redirect_to: redirectTo }).toString();
 
-  await supabaseAuth("/otp", {
+  await supabaseAuth(`/otp?${redirectQuery}`, {
     method: "POST",
     body: JSON.stringify({
       email,
+      redirect_to: redirectTo,
       create_user: false,
       options: {
         email_redirect_to: redirectTo
       }
     })
   });
+
+  return redirectTo;
 }
 
 export async function loadCurrentUser(accessToken = getAccessToken()) {
