@@ -17,9 +17,14 @@ export const APP_CONFIG = {
     enabled: true,
     projectUrl: "https://nhoexiahfcqqgzombptj.supabase.co",
     restUrl: "https://nhoexiahfcqqgzombptj.supabase.co/rest/v1",
+    functionsUrl: "https://nhoexiahfcqqgzombptj.supabase.co/functions/v1",
     anonKey: "sb_publishable_LbQ48ZS1vMj5FlaKEoMEHw_FyOdTpNV",
     authStorageKey: "nossoApeSupabaseSession",
     admins: ["dvaz538@gmail.com", "nathamgil10@gmail.com"]
+  },
+  asaasPix: {
+    enabled: true,
+    createChargeFunction: "create-asaas-pix-charge"
   }
 };
 
@@ -55,8 +60,8 @@ export const MODAL_STEPS = {
   },
   pix: {
     label: "Pagamento via Pix",
-    title: "Faça o Pix pela chave exibida",
-    description: "O pagamento é feito pela chave Pix abaixo. O registro fica pendente até a confirmação manual dos moradores.",
+    title: "Faça o Pix para confirmar sua ajuda",
+    description: "Quando o Pix automático estiver disponível, o site mostra QR Code e copia e cola. Se falhar, use a chave Pix manual e avise os moradores.",
     button: "Registrar intenção"
   },
   success: {

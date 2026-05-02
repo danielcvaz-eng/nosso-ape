@@ -267,8 +267,20 @@
                 <dd id="pix-value">R$ 0,00</dd>
               </div>
             </dl>
+            <div class="dynamic-pix hidden" id="dynamic-pix-box" aria-live="polite">
+              <p class="eyebrow">Pix automático Asaas</p>
+              <img class="pix-qr-code hidden" id="pix-qr-code" alt="QR Code Pix do presente" width="220" height="220">
+              <label class="form-field" for="pix-copy-paste">
+                Pix copia e cola
+                <textarea id="pix-copy-paste" rows="4" readonly></textarea>
+              </label>
+              <p class="manual-note" id="pix-expiration-note"></p>
+              <button class="copy-pix-button" id="copy-pix-payload-button" type="button">
+                Copiar Pix copia e cola
+              </button>
+            </div>
             <p class="manual-note">
-              O Pix é feito fora do site. O botão desta etapa registra a intenção apenas neste navegador, mas a confirmação oficial continua manual pelos moradores.
+              Se o Pix automático não aparecer, use a chave Pix manual abaixo e avise os moradores pelo WhatsApp. A confirmação manual continua disponível como fallback.
             </p>
             <button class="copy-pix-button" id="copy-pix-button" type="button">
               Copiar chave Pix

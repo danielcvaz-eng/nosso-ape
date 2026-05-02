@@ -58,6 +58,16 @@ function normalizeRestUrl() {
   return `${normalizeProjectUrl()}/rest/v1`;
 }
 
+function normalizeFunctionsUrl() {
+  const explicitFunctionsUrl = trimRightSlash(supabase.functionsUrl);
+
+  if (explicitFunctionsUrl) {
+    return explicitFunctionsUrl;
+  }
+
+  return `${normalizeProjectUrl()}/functions/v1`;
+}
+
 function normalizeRedirectPath(pathname) {
   const currentPath = pathname || "/";
 
@@ -104,6 +114,10 @@ function getAuthUrl(path) {
 
 function getRestUrl(path) {
   return `${normalizeRestUrl()}${path}`;
+}
+
+function getFunctionUrl(functionName) {
+  return `${normalizeFunctionsUrl()}/${functionName}`;
 }
 
 export function getStoredSession() {
@@ -189,6 +203,34 @@ export async function supabaseAuth(path, options = {}) {
 
   if (!response.ok) {
     throw new SupabaseRequestError("Supabase Auth", response, parseResponseText(responseText));
+  }
+
+  return parseResponseText(responseText);
+}
+
+export async function supabaseFunction(functionName, options = {}) {
+  if (!isSupabaseConfigured()) {
+    throw new Error("Supabase não configurado.");
+  }
+
+  const { accessToken, headers: customHeaders, ...fetchOptions } = options;
+  const token = accessToken || getAccessToken() || supabase.anonKey;
+  const headers = {
+    apikey: supabase.anonKey,
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    ...customHeaders
+  };
+
+  const response = await fetch(getFunctionUrl(functionName), {
+    ...fetchOptions,
+    headers
+  });
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    throw new SupabaseRequestError("Supabase Function", response, parseResponseText(responseText));
   }
 
   return parseResponseText(responseText);
