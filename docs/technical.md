@@ -94,6 +94,9 @@ Tabelas principais:
 - `products`: catálogo oficial, visibilidade pública e status compartilhado
 - `contributions`: intenções/contribuições enviadas pelos visitantes
 - `allowed_admins`: e-mails autorizados como moradores/admins
+- `payments`: cobranças Pix criadas no Asaas
+- `payment_events`: eventos de webhook recebidos do Asaas, com idempotência
+- `pix_charge_attempts`: tentativas de criação de Pix usadas para rate limit básico
 
 View pública segura:
 
@@ -104,6 +107,40 @@ Funções:
 - `current_user_is_admin()`: verifica se o usuário logado está em `allowed_admins`
 - `confirm_contribution(uuid)`: confirma contribuição pendente e atualiza status/progresso
 - `reject_contribution(uuid, text)`: rejeita contribuição pendente
+- `process_asaas_payment_event(text, text, text, numeric, jsonb)`: processa webhook Asaas sem duplicar confirmação
+
+## Pix Asaas
+
+A Etapa 14 prepara Pix dinâmico via Asaas usando Supabase Edge Functions.
+
+Arquitetura:
+
+- o navegador chama `create-asaas-pix-charge`;
+- a Edge Function valida produto e valor no Supabase;
+- a Edge Function chama a API do Asaas usando secret;
+- o visitante vê QR Code Pix e Pix copia e cola;
+- o Asaas chama `asaas-webhook`;
+- o webhook valida `asaas-access-token`;
+- o banco confirma a contribuição de forma idempotente;
+- a criação de Pix limita tentativas por IP para reduzir abuso;
+- se algo falhar, moradores ainda confirmam manualmente.
+
+Secrets necessários no Supabase:
+
+```text
+ASAAS_API_KEY
+ASAAS_API_BASE_URL
+ASAAS_CUSTOMER_ID
+ASAAS_WEBHOOK_TOKEN
+```
+
+Esses valores nunca devem entrar em `scripts/config.js`, GitHub Pages ou GitHub.
+
+Guia operacional:
+
+```text
+docs/asaas.md
+```
 
 ## RLS
 
@@ -116,6 +153,9 @@ Policies propostas em `supabase/schema.sql`:
 - qualquer pessoa pode ler apenas produtos visíveis em `products`
 - qualquer pessoa pode ler `product_progress`
 - qualquer pessoa pode inserir contribuição com status `pending`, desde que o produto exista, não esteja recebido e o valor respeite regras básicas do item
+- pagamentos Asaas são criados por Edge Function com service role guardada em secret, não pelo frontend direto
+- visitantes não conseguem ler `payments` nem `payment_events`
+- moradores autorizados conseguem ler `payments` para auditoria/fallback
 - visitantes anônimos podem ler apenas `id`, `product_id`, `amount` e `status` de contribuições `confirmed`, para a view `product_progress` funcionar com `security_invoker`
 - visitantes não podem confirmar contribuição
 - visitantes não podem alterar status de produto
@@ -330,7 +370,7 @@ Isso significa:
 
 Esses limites são aceitáveis para a fase estática, mas precisam virar backend se o site for usado como sistema oficial de controle.
 
-Com Supabase configurado, esses limites são reduzidos para produtos, status e contribuições confirmadas. Ainda continuam sem confirmação bancária automática, porque o Pix segue manual.
+Com Supabase configurado, esses limites são reduzidos para produtos, status e contribuições confirmadas. Com a Etapa 14, a confirmação automática passa a depender de Asaas, Edge Functions, secrets e webhook configurados corretamente. Sem isso, o site continua no fallback Pix manual.
 
 ## O que deve virar backend no futuro
 
@@ -340,4 +380,4 @@ Com Supabase configurado, esses limites são reduzidos para produtos, status e c
 - autenticação do modo moradores
 - histórico de reservas e confirmações
 
-Com a etapa Supabase, os quatro primeiros pontos começam a ser atendidos em modo manual. O próximo salto real seria automação operacional: auditoria melhor, notificações e talvez integração de pagamento no futuro.
+Com a etapa Supabase, os quatro primeiros pontos começaram a ser atendidos em modo manual. Com a Etapa 14, a integração de pagamento fica preparada, mas ainda precisa de configuração Asaas e validação com pagamento pequeno real/sandbox.

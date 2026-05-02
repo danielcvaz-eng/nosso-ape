@@ -7,6 +7,7 @@ import {
   loadCurrentUser,
   parseAuthRedirect,
   requestMagicLink,
+  supabaseFunction,
   supabaseRest
 } from "./supabaseClient.js";
 
@@ -103,7 +104,7 @@ export async function submitPendingContribution({ product, flowData }) {
     giver_name: flowData.personName,
     giver_message: flowData.optionalMessage || null,
     amount: Number(flowData.selectedValue.toFixed(2)),
-    contribution_type: flowData.giftType,
+    contribution_type: product.tipo === "colaborativo" ? "colaborativo" : flowData.giftType,
     payment_method: "pix",
     status: "pending"
   };
@@ -117,6 +118,23 @@ export async function submitPendingContribution({ product, flowData }) {
   });
 
   return { status: "pending" };
+}
+
+export async function createAsaasPixCharge({ product, flowData }) {
+  if (!APP_CONFIG.asaasPix?.enabled) {
+    throw new Error("Pix automático não configurado.");
+  }
+
+  return supabaseFunction(APP_CONFIG.asaasPix.createChargeFunction, {
+    method: "POST",
+    body: JSON.stringify({
+      product_id: product.id,
+      giver_name: flowData.personName,
+      giver_message: flowData.optionalMessage || null,
+      amount: Number(flowData.selectedValue.toFixed(2)),
+      contribution_type: product.tipo === "colaborativo" ? "colaborativo" : flowData.giftType
+    })
+  });
 }
 
 export async function initializeAdminSession() {
@@ -194,9 +212,16 @@ export async function requestAdminLogin(email) {
 }
 
 export async function loadPendingContributions() {
-  return supabaseRest(
-    "/contributions?select=id,product_id,giver_name,giver_message,amount,contribution_type,payment_method,status,created_at,products(name,category)&status=eq.pending&order=created_at.desc"
-  );
+  try {
+    return await supabaseRest(
+      "/contributions?select=id,product_id,giver_name,giver_message,amount,contribution_type,payment_method,status,payment_status,provider,confirmation_source,created_at,products(name,category),payments(provider_payment_id,status,paid_at,created_at)&status=in.(pending,awaiting_payment,pending_manual_review)&order=created_at.desc"
+    );
+  } catch (error) {
+    console.warn("[Nosso Ape] Campos Asaas indisponíveis. Usando consulta de pendências legada.", error);
+    return supabaseRest(
+      "/contributions?select=id,product_id,giver_name,giver_message,amount,contribution_type,payment_method,status,created_at,products(name,category)&status=eq.pending&order=created_at.desc"
+    );
+  }
 }
 
 export async function confirmContribution(contributionId) {
