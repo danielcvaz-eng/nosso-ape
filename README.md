@@ -344,6 +344,18 @@ O arquivo abaixo é apenas backup das imagens:
 assets/produtos-imagens.zip
 ```
 
+Para converter uma imagem JPG de produto para WebP no mesmo padrão dos cards:
+
+```bash
+npm run convert:product -- assets/produtos/entrada.jpg assets/produtos/saida.webp
+```
+
+Na Etapa 12, a imagem real das almofadas foi convertida para:
+
+```text
+assets/produtos/03-almofadas-decorativas-cheias.webp
+```
+
 A foto principal do topo do site fica em:
 
 ```text
@@ -422,7 +434,7 @@ Esse SQL cria:
 - view `product_progress`
 - funções `current_user_is_admin`, `confirm_contribution` e `reject_contribution`
 - policies RLS
-- seeds dos 15 produtos oficiais
+- seeds dos produtos oficiais
 - admins autorizados
 
 Se você já aplicou uma versão anterior do schema e o insert público de contribuição `pending` foi bloqueado por RLS, execute também:
@@ -442,6 +454,12 @@ Se o modo moradores falhar ao confirmar/rejeitar contribuições, ou se você ap
 - `supabase/patch-admin-confirmation-stability.sql`
 
 Esse patch reforça as validações das funções `confirm_contribution` e `reject_contribution` sem abrir RLS e sem transformar o site em confirmação automática de Pix.
+
+Para aplicar a atualização de catálogo da Etapa 12, execute:
+
+- `supabase/patch-etapa-12-catalogo-produtos.sql`
+
+Esse patch adiciona o campo `is_visible`, oculta a máquina de gelo sem apagar histórico, atualiza micro-ondas e almofadas, adiciona cafeteira e fruteira e remove a marcação de preço de referência dos produtos visíveis. Os preços são valores reais informados no momento da atualização, mas podem mudar nos varejistas.
 
 ### Auth e Redirect URLs
 

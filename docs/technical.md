@@ -24,6 +24,7 @@ Arquivos:
 - `assets/produtos-imagens.zip`: pacote de backup das imagens
 - `tools/fetch-product-images.mjs`: script auxiliar usado para buscar e regenerar imagens públicas dos produtos
 - `tools/convert-hero-image.mjs`: script auxiliar para converter `assets/hero/apartamento-sala.jpg` em `assets/hero/apartamento-sala.webp`
+- `tools/convert-product-image.mjs`: script auxiliar para converter JPGs de produtos em WebP no tamanho dos cards
 
 As imagens são ligadas aos produtos pelo `id` no mapa `PRODUCT_IMAGES` em `scripts/api.js`. Isso evita criar coluna nova no Supabase só para imagem e mantém a integração simples: o Supabase continua sendo a fonte dos dados oficiais, enquanto o frontend complementa com a imagem local.
 
@@ -90,7 +91,7 @@ O Supabase passa a cuidar de:
 
 Tabelas principais:
 
-- `products`: catálogo oficial e status compartilhado
+- `products`: catálogo oficial, visibilidade pública e status compartilhado
 - `contributions`: intenções/contribuições enviadas pelos visitantes
 - `allowed_admins`: e-mails autorizados como moradores/admins
 
@@ -112,7 +113,7 @@ No Supabase, como o frontend acessa o banco usando uma anon/publishable key púb
 
 Policies propostas em `supabase/schema.sql`:
 
-- qualquer pessoa pode ler `products`
+- qualquer pessoa pode ler apenas produtos visíveis em `products`
 - qualquer pessoa pode ler `product_progress`
 - qualquer pessoa pode inserir contribuição com status `pending`, desde que o produto exista, não esteja recebido e o valor respeite regras básicas do item
 - visitantes anônimos podem ler apenas `id`, `product_id`, `amount` e `status` de contribuições `confirmed`, para a view `product_progress` funcionar com `security_invoker`
@@ -121,6 +122,7 @@ Policies propostas em `supabase/schema.sql`:
 - usuários autenticados só conseguem ler a própria linha em `allowed_admins`
 - apenas usuários autenticados e autorizados em `allowed_admins` podem ler/atualizar contribuições
 - apenas usuários autorizados podem alterar status oficial de produto
+- produtos removidos do catálogo público devem ser ocultados com `is_visible = false`, não apagados, para preservar histórico de contribuições
 
 A view `product_progress` deve usar `security_invoker = true` para evitar o alerta `Security Definer View` do Supabase e fazer a leitura respeitar RLS.
 As funções RPC públicas devem evitar `SECURITY DEFINER`; a autorização acontece por RLS e pela função `current_user_is_admin()` como invoker.
@@ -286,6 +288,14 @@ supabase/patch-admin-confirmation-stability.sql
 ```
 
 Esse patch mantém as funções como `security invoker`, preserva RLS e reforça as validações internas de confirmação manual.
+
+Para aplicar a atualização de catálogo da Etapa 12, execute no Supabase:
+
+```text
+supabase/patch-etapa-12-catalogo-produtos.sql
+```
+
+Esse patch adiciona `is_visible` em `products`, oculta a máquina de gelo, atualiza micro-ondas e almofadas, adiciona cafeteira e fruteira e bloqueia contribuições novas para produtos ocultos. Os preços visíveis não devem usar `estimated_price`; são preços reais informados, embora possam mudar no varejista.
 
 ## Erros comuns no modo moradores
 

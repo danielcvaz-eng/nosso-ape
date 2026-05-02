@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "convert:hero": "node tools/convert-hero-image.mjs",
+    "convert:product": "node tools/convert-product-image.mjs",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
