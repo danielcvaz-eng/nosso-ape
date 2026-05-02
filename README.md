@@ -62,6 +62,10 @@ nosso-ape/
 ├── package-lock.json
 ├── playwright.config.mjs
 ├── .gitignore
+├── assets/
+│   ├── produtos/
+│   │   └── imagens dos produtos em WebP
+│   └── produtos-imagens.zip
 ├── data/
 │   └── produtos.js
 ├── scripts/
@@ -90,6 +94,7 @@ Observação:
 
 - `script.js`, `style.css` e `produtos.js` continuam existindo na raiz como wrappers de compatibilidade.
 - a implementação real está em `data/`, `scripts/` e `styles/`.
+- as imagens dos cards ficam em `assets/produtos/`; o arquivo `assets/produtos-imagens.zip` é apenas um pacote de backup, não é usado diretamente pelo site.
 
 ## Como rodar localmente
 
@@ -125,8 +130,9 @@ python3 -m http.server 8001
 
 1. Abra a página.
 2. Verifique se os 15 produtos aparecem.
-3. Use busca, filtro de categoria, prioridade e status.
-4. Clique em `Limpar filtros`.
+3. Verifique se os cards mostram imagens dos produtos.
+4. Use busca, filtro de categoria, prioridade e status.
+5. Clique em `Limpar filtros`.
 
 ### Fluxo de presente
 
@@ -313,6 +319,28 @@ Campos principais:
 - `supabase.projectUrl`
 - `supabase.restUrl`
 - `supabase.anonKey`
+
+## Imagens dos produtos
+
+As imagens ficam em:
+
+```text
+assets/produtos/
+```
+
+Elas são arquivos `.webp` locais, leves e carregados com `loading="lazy"`. O site associa cada imagem ao produto pelo `id` em `scripts/api.js`, então não é necessário alterar o Supabase só para trocar uma foto.
+
+Para trocar uma imagem:
+
+1. Substitua o arquivo correspondente em `assets/produtos/`.
+2. Mantenha o mesmo nome do arquivo ou ajuste o mapa `PRODUCT_IMAGES` em `scripts/api.js`.
+3. Rode os testes.
+
+O arquivo abaixo é apenas backup das imagens:
+
+```text
+assets/produtos-imagens.zip
+```
 
 ## Backend Supabase
 

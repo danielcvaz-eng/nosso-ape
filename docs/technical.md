@@ -3,6 +3,7 @@
 ## Onde ficam os dados
 
 - Produtos oficiais: `data/produtos.js`
+- Imagens locais dos produtos: `assets/produtos/`
 - Configurações fixas de Pix, WhatsApp e textos principais: `scripts/config.js`
 - Configurações do Supabase: `scripts/config.js`
 - Exemplo de configuração pública: `scripts/supabase.example.js`
@@ -11,6 +12,25 @@
 - Persistência local e migração de chaves antigas: `scripts/storage.js`
 - Fluxo principal do front-end: `scripts/main.js`
 - Schema do banco: `supabase/schema.sql`
+
+## Imagens dos produtos
+
+O site usa imagens locais em `.webp`, servidas pelo próprio GitHub Pages.
+
+Arquivos:
+
+- `assets/produtos/*.webp`: imagens usadas nos cards
+- `assets/produtos-imagens.zip`: pacote de backup das imagens
+- `tools/fetch-product-images.mjs`: script auxiliar usado para buscar e regenerar imagens públicas dos produtos
+
+As imagens são ligadas aos produtos pelo `id` no mapa `PRODUCT_IMAGES` em `scripts/api.js`. Isso evita criar coluna nova no Supabase só para imagem e mantém a integração simples: o Supabase continua sendo a fonte dos dados oficiais, enquanto o frontend complementa com a imagem local.
+
+Os cards renderizam as imagens com:
+
+- `alt` com o nome do produto
+- `width` e `height` fixos para estabilidade de layout
+- `loading="lazy"` para performance
+- `decoding="async"` para reduzir bloqueio visual
 
 ## Como funciona o localStorage
 

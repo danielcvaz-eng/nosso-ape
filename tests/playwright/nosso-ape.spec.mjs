@@ -11,6 +11,8 @@ test.beforeEach(async ({ page }) => {
 test("catalogo carrega, filtra e limpa filtros", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /um cantinho novo/i })).toBeVisible();
   await expect(page.locator(".product-card")).toHaveCount(15);
+  await expect(page.locator(".product-image")).toHaveCount(15);
+  await expect(page.locator(".product-image").first()).toHaveJSProperty("naturalWidth", 900);
 
   await page.getByLabel("Buscar item").fill("micro");
   await expect(page.locator(".product-card")).toHaveCount(1);

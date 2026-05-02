@@ -10,6 +10,35 @@ import {
   supabaseRest
 } from "./supabaseClient.js";
 
+const PRODUCT_IMAGES = {
+  1: "assets/produtos/01-lava-e-seca-electrolux-inverter-12kg-lfc12.webp",
+  2: "assets/produtos/02-micro-ondas-philco-25l-limpa-facil-pmo28e.webp",
+  3: "assets/produtos/03-almofadas-para-sofa-conjunto-com-4-capas-decorativas.webp",
+  4: "assets/produtos/04-forno-eletrico-mondial-family-ii-42l.webp",
+  5: "assets/produtos/05-panela-de-pressao-eletrica-midea-6l.webp",
+  6: "assets/produtos/06-maquina-de-gelo-eos-12kg-ice-compact.webp",
+  7: "assets/produtos/07-kit-com-3-frigideiras-com-tampa-de-vidro.webp",
+  8: "assets/produtos/08-assadeira-forma-retangular-antiaderente.webp",
+  9: "assets/produtos/09-marinex-jogo-de-assadeiras-opaline-kit-3-unidades.webp",
+  10: "assets/produtos/10-potes-hermeticos.webp",
+  11: "assets/produtos/11-porta-temperos-giratorio.webp",
+  12: "assets/produtos/12-2-lixeiras-pequenas-para-o-lavabo.webp",
+  13: "assets/produtos/13-porta-chaves-de-parede.webp",
+  14: "assets/produtos/14-tapete-casa-dona-200x300-cm-caramelo.webp",
+  15: "assets/produtos/15-mop-com-cesto-de-inox.webp"
+};
+
+function getProductImage(productId) {
+  return PRODUCT_IMAGES[Number(productId)] || "";
+}
+
+function withProductImage(product) {
+  return {
+    ...product,
+    imagem: product.imagem || getProductImage(product.id)
+  };
+}
+
 function toProduct(row, progress = {}) {
   return {
     id: row.id,
@@ -22,6 +51,7 @@ function toProduct(row, progress = {}) {
     link: row.link,
     status: row.status,
     precoEstimado: Boolean(row.estimated_price),
+    imagem: getProductImage(row.id),
     confirmedAmount: Number(progress.confirmed_amount || 0)
   };
 }
@@ -34,7 +64,7 @@ export async function loadCatalogData() {
   if (!isSupabaseConfigured()) {
     return {
       mode: "local",
-      products: fallbackProducts,
+      products: fallbackProducts.map(withProductImage),
       message: "Supabase não configurado. Usando dados locais."
     };
   }
@@ -57,7 +87,7 @@ export async function loadCatalogData() {
     console.warn("[Nosso Ape] Falha ao carregar Supabase. Usando fallback local.", error);
     return {
       mode: "local-fallback",
-      products: fallbackProducts,
+      products: fallbackProducts.map(withProductImage),
       message: "Não foi possível conectar ao Supabase. Usando dados locais neste navegador.",
       error
     };

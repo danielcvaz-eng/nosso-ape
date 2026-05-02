@@ -259,6 +259,26 @@ function createContributionProgress(product) {
   `;
 }
 
+function createProductImage(product) {
+  if (!product.imagem) {
+    return "";
+  }
+
+  return `
+    <figure class="product-image-frame">
+      <img
+        class="product-image"
+        src="${escapeHtml(product.imagem)}"
+        alt="${escapeHtml(product.nome)}"
+        width="900"
+        height="675"
+        loading="lazy"
+        decoding="async"
+      >
+    </figure>
+  `;
+}
+
 function createProductCard(product) {
   const priorityClass = `priority-${product.prioridade}`;
   const statusClass = `status-${product.statusAtual}`;
@@ -266,6 +286,8 @@ function createProductCard(product) {
 
   return `
     <article class="product-card ${priorityClass} ${statusClass}">
+      ${createProductImage(product)}
+
       <div class="product-card-header">
         <span class="product-category">${escapeHtml(product.categoria)}</span>
         <span class="product-status ${statusClass}">${escapeHtml(LABELS.status[product.statusAtual] || product.statusAtual)}</span>
