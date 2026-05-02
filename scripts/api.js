@@ -12,7 +12,7 @@ import {
 
 const PRODUCT_IMAGES = {
   1: "assets/produtos/01-lava-e-seca-electrolux-inverter-12kg-lfc12.webp",
-  2: "assets/produtos/02-micro-ondas-philco-25l-limpa-facil-pmo28e.webp",
+  2: "assets/produtos/02-micro-ondas-electrolux-efficient-me36s.webp",
   3: "assets/produtos/03-almofadas-decorativas-cheias.webp",
   4: "assets/produtos/04-forno-eletrico-mondial-family-ii-42l.webp",
   5: "assets/produtos/05-panela-de-pressao-eletrica-midea-6l.webp",
