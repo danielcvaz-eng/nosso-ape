@@ -11,7 +11,7 @@ O projeto já cobre catálogo, filtros, fluxo de presente com modal, Pix, confir
 
 ## Funcionalidades atuais
 
-- catálogo oficial com 15 produtos reais
+- catálogo oficial com 16 produtos reais visíveis
 - agrupamento por categoria
 - busca por nome
 - filtros por categoria, prioridade e status
@@ -131,7 +131,7 @@ python3 -m http.server 8001
 ### Catálogo
 
 1. Abra a página.
-2. Verifique se os 15 produtos aparecem.
+2. Verifique se os 16 produtos aparecem.
 3. Verifique se os cards mostram imagens dos produtos.
 4. Use busca, filtro de categoria, prioridade e status.
 5. Clique em `Limpar filtros`.
@@ -320,6 +320,7 @@ Campos principais:
 - `finalGiftMessage`
 - `supabase.projectUrl`
 - `supabase.restUrl`
+- `supabase.functionsUrl`
 - `supabase.anonKey`
 
 ## Imagens dos produtos
@@ -389,6 +390,7 @@ O que muda quando o Supabase estiver configurado e o SQL aplicado:
 - moradores autorizados entram por magic link
 - moradores confirmam ou rejeitam contribuições manualmente
 - status oficial passa a ser compartilhado entre dispositivos
+- a Etapa 14 prepara Pix dinâmico via Asaas com Edge Functions e fallback manual
 
 Se o Supabase estiver indisponível ou o schema ainda não tiver sido aplicado, o site continua funcionando em modo local/fallback com os dados atuais.
 
@@ -461,6 +463,51 @@ Para aplicar a atualização de catálogo da Etapa 12, execute:
 
 Esse patch adiciona o campo `is_visible`, oculta a máquina de gelo sem apagar histórico, atualiza micro-ondas e almofadas, adiciona cafeteira e fruteira e remove a marcação de preço de referência dos produtos visíveis. Os preços são valores reais informados no momento da atualização, mas podem mudar nos varejistas.
 
+Para preparar Pix dinâmico via Asaas na Etapa 14, execute:
+
+- `supabase/patch-etapa-14-asaas-pix.sql`
+
+Esse patch cria `payments`, cria `payment_events`, amplia os status de `contributions` e preserva confirmação manual como fallback. Ele não apaga contribuições confirmadas nem valores já recebidos.
+
+### Pix Asaas
+
+A integração Asaas usa Supabase Edge Functions:
+
+- `create-asaas-pix-charge`: cria cobrança Pix dinâmica.
+- `asaas-webhook`: recebe eventos do Asaas e confirma pagamento recebido.
+
+Secrets necessários no Supabase:
+
+```bash
+supabase secrets set ASAAS_API_KEY=...
+supabase secrets set ASAAS_API_BASE_URL=https://api.asaas.com/v3
+supabase secrets set ASAAS_CUSTOMER_ID=...
+supabase secrets set ASAAS_WEBHOOK_TOKEN=...
+```
+
+Depois, faça deploy:
+
+```bash
+supabase functions deploy create-asaas-pix-charge
+supabase functions deploy asaas-webhook
+```
+
+O arquivo `supabase/config.toml` configura `asaas-webhook` com `verify_jwt = false`, porque o Asaas valida pelo header `asaas-access-token`, não por JWT do Supabase.
+
+Webhook no painel Asaas:
+
+```text
+https://nhoexiahfcqqgzombptj.supabase.co/functions/v1/asaas-webhook
+```
+
+Ative eventos de pagamento recebido/confirmado e configure o mesmo token salvo em `ASAAS_WEBHOOK_TOKEN`.
+
+A criação de Pix tem rate limit básico de 10 tentativas por IP por hora. Em caso de falha depois de criar uma cobrança no Asaas, a função tenta cancelar a cobrança para evitar Pix sem vínculo local.
+
+Guia completo:
+
+- `docs/asaas.md`
+
 ### Auth e Redirect URLs
 
 No Supabase, configure as URLs em:
@@ -503,19 +550,27 @@ dvaz538@gmail.com
 nathamgil10@gmail.com
 ```
 
-### Por que contribuições ficam pendentes
+### Por que ainda existe confirmação manual
 
-O Pix acontece fora do site. Por isso, o site não deve marcar uma contribuição como confirmada automaticamente.
+Com Asaas configurado, o Pix dinâmico pode confirmar pagamentos automaticamente via webhook.
+
+Mesmo assim, a confirmação manual continua existindo como fallback quando:
+
+- webhook falha;
+- pagamento precisa de revisão;
+- valor recebido diverge;
+- moradores querem conferir manualmente um caso específico.
 
 Fluxo correto:
 
 1. Visitante preenche intenção.
-2. Visitante faz Pix.
-3. Site registra contribuição como `pending`.
-4. Morador entra no modo moradores com magic link.
-5. Morador confere o Pix manualmente.
-6. Morador confirma ou rejeita a contribuição.
-7. Apenas contribuições confirmadas entram no progresso oficial.
+2. Site tenta gerar Pix Asaas.
+3. Visitante paga pelo QR Code ou Pix copia e cola.
+4. Webhook Asaas confirma automaticamente quando possível.
+5. Se o Pix automático falhar, visitante usa a chave manual.
+6. Morador entra no modo moradores com magic link.
+7. Morador confirma ou rejeita a contribuição quando necessário.
+8. Apenas contribuições confirmadas entram no progresso oficial.
 
 ### Diagnóstico rápido do modo moradores
 
@@ -610,21 +665,21 @@ O GitHub Pages atualiza a publicação automaticamente após o push para a branc
 
 O projeto deixa claro que:
 
-- o pagamento é feito por Pix com a chave exibida no modal
-- o botão `Registrar intenção` registra a intenção no site
-- com Supabase ativo, esse registro fica como pendente no backend
+- quando Asaas estiver configurado, o pagamento pode ser feito por QR Code Pix dinâmico e copia e cola
+- se Asaas falhar ou ainda não estiver deployado, o site mostra a chave Pix manual
+- o botão `Registrar intenção` mantém o fallback manual no site
+- com Supabase ativo, registros manuais ficam como pendentes no backend
 - em modo fallback, esse registro continua local ao navegador atual
-- a confirmação oficial continua manual pelos moradores
+- a confirmação manual continua disponível pelos moradores
 - dúvidas podem ser tratadas via WhatsApp
 
-Isso reduz risco de interpretação errada e evita passar a impressão de confirmação bancária automática.
+Isso reduz risco de interpretação errada e evita depender apenas do webhook.
 
 ## Limitações atuais
 
-- não existe confirmação bancária automática
-- o Supabase não confirma Pix automaticamente; moradores ainda conferem manualmente
+- a confirmação automática depende de deploy das Edge Functions, secrets Asaas e webhook configurado
+- sem Asaas configurado, o fluxo continua manual
 - em modo fallback local, status e contribuições salvos no navegador não sincronizam entre dispositivos
-- o fluxo Pix é assistido, não transacional
 - o convite de WhatsApp depende de o navegador conseguir abrir a URL externa
 
 ## Próximas evoluções de backend
@@ -634,6 +689,7 @@ Com Supabase, a primeira camada de backend já existe. Próximos pontos possíve
 - auditoria de alterações
 - integração com notificações e mensageria
 - validações operacionais mais rígidas para evitar spam de contribuições pendentes
+- validação com pagamento real pequeno no Asaas
 
 ## Documentação técnica adicional
 
