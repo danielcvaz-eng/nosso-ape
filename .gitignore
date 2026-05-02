@@ -30,6 +30,7 @@ Thumbs.db
 
 # Fontes locais de imagem convertidas para WebP
 assets/hero/*.jpg
+assets/produtos/*.jpg
 
 # Arquivos locais do VS Code
 docs/*.code-workspace

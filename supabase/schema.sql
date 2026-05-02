@@ -15,6 +15,7 @@ create table if not exists public.products (
   link text not null,
   status text not null default 'disponivel' check (status in ('disponivel', 'reservado', 'recebido')),
   estimated_price boolean not null default false,
+  is_visible boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -48,6 +49,7 @@ create table if not exists public.allowed_admins (
 
 create index if not exists idx_products_status on public.products(status);
 create index if not exists idx_products_category on public.products(category);
+create index if not exists idx_products_is_visible on public.products(is_visible);
 create index if not exists idx_contributions_product_id on public.contributions(product_id);
 create index if not exists idx_contributions_status on public.contributions(status);
 create index if not exists idx_contributions_created_at on public.contributions(created_at desc);
@@ -116,6 +118,10 @@ begin
 
   if target_product.id is null then
     raise exception 'product not found';
+  end if;
+
+  if not target_product.is_visible then
+    raise exception 'product hidden';
   end if;
 
   if target_product.status = 'recebido' then
@@ -223,11 +229,19 @@ alter table public.contributions enable row level security;
 alter table public.allowed_admins enable row level security;
 
 drop policy if exists "Public can read products" on public.products;
-create policy "Public can read products"
+drop policy if exists "Public can read visible products" on public.products;
+create policy "Public can read visible products"
 on public.products
 for select
 to anon, authenticated
-using (true);
+using (is_visible);
+
+drop policy if exists "Admins can read products" on public.products;
+create policy "Admins can read products"
+on public.products
+for select
+to authenticated
+using (public.current_user_is_admin());
 
 drop policy if exists "Admins can update products" on public.products;
 create policy "Admins can update products"
@@ -253,6 +267,7 @@ with check (
     select 1
     from public.products
     where products.id = contributions.product_id
+      and products.is_visible
       and products.status <> 'recebido'
       and (
         (
@@ -325,23 +340,25 @@ values
 on conflict (email) do nothing;
 
 insert into public.products
-  (id, name, category, price, priority, type, description, link, status, estimated_price)
+  (id, name, category, price, priority, type, description, link, status, estimated_price, is_visible)
 values
-  (1, 'Lava e seca Electrolux Inverter 12kg LFC12', 'Lavanderia', 3019.00, 'alta', 'colaborativo', 'Item essencial para a rotina da casa.', 'https://www.magazineluiza.com.br/lavadora-de-roupas-electrolux-inverter-12kg-cesto-inox-8-programas-de-lavagem-agua-quente-cinza-onix-lfc12/p/241186800/ed/ela1/?seller_id=magazineluiza', 'disponivel', false),
-  (2, 'Micro-ondas Philco 25L Limpa Fácil PMO28E', 'Cozinha', 593.10, 'alta', 'colaborativo', 'Micro-ondas para uso diário da casa.', 'https://www.amazon.com.br/Micro-ondas-Philco-Limpa-F%C3%A1cil-PMO28E/dp/B0CVQ7K8TG/', 'disponivel', false),
-  (3, 'Almofadas para sofá - conjunto com 4 capas decorativas', 'Sala / Decoração', 79.99, 'media', 'inteiro', 'Conjunto decorativo para complementar o sofá.', 'https://www.temu.com/br/pacote--fronhas-decorativas--capa-de-almofada-com--de-chenille-fronha--e-confort%C3%A1vel-estilo--com-z%C3%ADper-para-presente-decora%C3%A7%C3%A3o--para-sof%C3%A1-quarto-e--g-601101941874365.html', 'disponivel', false),
-  (4, 'Forno elétrico Mondial Family II 42L', 'Cozinha', 369.00, 'media', 'colaborativo', 'Forno elétrico para preparo do dia a dia.', 'https://www.amazon.com.br/Forno-El%C3%A9trico-Family-Mondial-Branco/dp/B0DX2G8NY7/', 'disponivel', false),
-  (5, 'Panela de pressão elétrica Midea 6L', 'Cozinha', 476.03, 'alta', 'colaborativo', 'Panela elétrica prática para receitas do dia a dia.', 'https://www.amazon.com.br/Panela-Press%C3%A3o-El%C3%A9trica-MasterSteam-Midea/dp/B0B4Q24P9Q/', 'disponivel', false),
-  (6, 'Máquina de gelo EOS 12kg Ice Compact', 'Cozinha', 489.00, 'baixa', 'colaborativo', 'Item útil para receber visitas e ocasiões especiais.', 'https://www.amazon.com.br/M%C3%A1quina-EOS-Compact-Black-EMG06P/dp/B0DX79WRJF/', 'disponivel', true),
-  (7, 'Kit com 3 frigideiras com tampa de vidro', 'Cozinha', 84.90, 'alta', 'inteiro', 'Kit essencial para montar a cozinha.', 'https://www.amazon.com.br/Kit-Com-Frigideiras-Tampa-Vidro/dp/B0GN97NR5Q/', 'disponivel', true),
-  (8, 'Assadeira / forma retangular antiaderente', 'Cozinha', 24.69, 'media', 'inteiro', 'Item útil para assados e preparos no forno.', 'https://www.amazon.com.br/Assadeira-Retangular-Antiaderente-Revestimento-Interno/dp/B0DLWWYCPT/', 'disponivel', false),
-  (9, 'Marinex - jogo de assadeiras opaline kit 3 unidades', 'Cozinha', 69.50, 'media', 'inteiro', 'Jogo de refratários para forno e mesa.', 'https://www.amazon.com.br/Jogo-Assadeiras-Opaline-Marinex-Nadir/dp/B08G8WD9MF/', 'disponivel', false),
-  (10, 'Potes herméticos', 'Cozinha', 149.00, 'media', 'inteiro', 'Potes para armazenar mantimentos com organização.', 'https://www.amazon.com.br/Mantimentos-Herm%C3%A9ticos-Silicone-Premium-Madeira/dp/B0DWPSMN9R/', 'disponivel', false),
-  (11, 'Porta-temperos giratório', 'Cozinha', 35.90, 'media', 'inteiro', 'Organizador para temperos da cozinha.', 'https://www.amazon.com.br/Condimentos-Girat%C3%B3rio-Armazenamento-Especiarias-Resistente/dp/B0GSBF4XV2/', 'disponivel', false),
-  (12, '2 lixeiras pequenas para o lavabo', 'Banheiro / Lavabo', 60.00, 'media', 'inteiro', 'Duas lixeiras compactas para os lavabos.', 'https://www.amazon.com.br/Viel-Polipropileno-Compacta-Banheiro-Escrit%C3%B3rio/dp/B08YDGR7JK/', 'disponivel', true),
-  (13, 'Porta-chaves de parede', 'Sala / Organização', 43.00, 'baixa', 'inteiro', 'Organizador de chaves para a entrada da casa.', 'https://www.amazon.com.br/Porta-Chaves-Prateleiras-Ganchos-Branco/dp/B0DWZ7GZVX/', 'disponivel', false),
-  (14, 'Tapete Casa Dona 200x300 cm caramelo', 'Sala / Decoração', 245.99, 'media', 'colaborativo', 'Tapete grande para compor a sala.', 'https://www.amazon.com.br/Felpudo-Casa-Dona-200x300-Caramelo/dp/B0865V926N/', 'disponivel', false),
-  (15, 'Mop com cesto de inox', 'Lavanderia / Limpeza', 59.90, 'alta', 'inteiro', 'Item importante para a limpeza da casa.', 'https://www.amazon.com.br/Girat%C3%B3rio-Esfreg%C3%A3o-Limpeza-Microfibra-Centrifuga/dp/B0GVGS8FT1/', 'disponivel', true)
+  (1, 'Lava e seca Electrolux Inverter 12kg LFC12', 'Lavanderia', 3019.00, 'alta', 'colaborativo', 'Item essencial para a rotina da casa.', 'https://www.magazineluiza.com.br/lavadora-de-roupas-electrolux-inverter-12kg-cesto-inox-8-programas-de-lavagem-agua-quente-cinza-onix-lfc12/p/241186800/ed/ela1/?seller_id=magazineluiza', 'disponivel', false, true),
+  (2, 'Micro-ondas de Bancada Electrolux Efficient 36L ME36S - 220V Prata', 'Cozinha', 793.12, 'alta', 'colaborativo', 'Micro-ondas grande e eficiente para o uso diário da casa, com capacidade de 36L.', 'https://a.co/d/0hMQB6eW', 'disponivel', false, true),
+  (3, 'Almofadas decorativas cheias com zíper invisível', 'Sala / Decoração', 130.00, 'media', 'inteiro', 'Conjunto de almofadas decorativas cheias, em tons terrosos e claros, para deixar a sala mais confortável e bonita.', 'https://www.amazon.com.br/Almofadas-Decorativas-Cheias-Invis%C3%ADvel-Diversas/dp/B0GMJFRYYC/ref=sr_1_26?__mk_pt_BR=%C3%85M%C3%85%C5%BD%C3%95%C3%91&crid=2DNWHKIITJH9S&dib=eyJ2IjoiMSJ9.xP1S6v7-jAyX3W3wMyg-QG_xruK0bUN40EWbmXC1jfemnBKmsnecVmajDuQbpLzypUcq0-tiO-CR2iSbM0XX_iLWKa7nzTNdO2buRrIQbV8nolCuBjl4eGphrQWNE7QPbFxIqRyM8ekAi-bMuM0NPmbhjX_hrdhzVTAVx-sxK49qIL3AHrONn4F_l2xPdS1UZJbvEq1R5EI7SfeKcFS4Y-YBz3656m4evQvmKDdBsWDOBYb6d8UzZegOUnjfAzW2EWhXc0hW6fiD31_mz9yTXHBQJFAkZzQATUc5IGRXmxU.lo7qIP4evHf_4s3m8luBh6n4A2FsIx2rk8wVxRGiZ8M&dib_tag=se&keywords=almofadas%2Bcheias&qid=1777743535&sprefix=almofadas%2Bcheias%2Caps%2C221&sr=8-26&ufe=app_do%3Aamzn1.fos.6a09f7ec-d911-4889-ad70-de8dd83c8a74&th=1', 'disponivel', false, true),
+  (4, 'Forno elétrico Mondial Family II 42L', 'Cozinha', 369.00, 'media', 'colaborativo', 'Forno elétrico para preparo do dia a dia.', 'https://www.amazon.com.br/Forno-El%C3%A9trico-Family-Mondial-Branco/dp/B0DX2G8NY7/', 'disponivel', false, true),
+  (5, 'Panela de pressão elétrica Midea 6L', 'Cozinha', 476.03, 'alta', 'colaborativo', 'Panela elétrica prática para receitas do dia a dia.', 'https://www.amazon.com.br/Panela-Press%C3%A3o-El%C3%A9trica-MasterSteam-Midea/dp/B0B4Q24P9Q/', 'disponivel', false, true),
+  (6, 'Máquina de gelo EOS 12kg Ice Compact', 'Cozinha', 489.00, 'baixa', 'colaborativo', 'Item útil para receber visitas e ocasiões especiais.', 'https://www.amazon.com.br/M%C3%A1quina-EOS-Compact-Black-EMG06P/dp/B0DX79WRJF/', 'disponivel', false, false),
+  (7, 'Kit com 3 frigideiras com tampa de vidro', 'Cozinha', 84.90, 'alta', 'inteiro', 'Kit essencial para montar a cozinha.', 'https://www.amazon.com.br/Kit-Com-Frigideiras-Tampa-Vidro/dp/B0GN97NR5Q/', 'disponivel', false, true),
+  (8, 'Assadeira / forma retangular antiaderente', 'Cozinha', 24.69, 'media', 'inteiro', 'Item útil para assados e preparos no forno.', 'https://www.amazon.com.br/Assadeira-Retangular-Antiaderente-Revestimento-Interno/dp/B0DLWWYCPT/', 'disponivel', false, true),
+  (9, 'Marinex - jogo de assadeiras opaline kit 3 unidades', 'Cozinha', 69.50, 'media', 'inteiro', 'Jogo de refratários para forno e mesa.', 'https://www.amazon.com.br/Jogo-Assadeiras-Opaline-Marinex-Nadir/dp/B08G8WD9MF/', 'disponivel', false, true),
+  (10, 'Potes herméticos', 'Cozinha', 149.00, 'media', 'inteiro', 'Potes para armazenar mantimentos com organização.', 'https://www.amazon.com.br/Mantimentos-Herm%C3%A9ticos-Silicone-Premium-Madeira/dp/B0DWPSMN9R/', 'disponivel', false, true),
+  (11, 'Porta-temperos giratório', 'Cozinha', 35.90, 'media', 'inteiro', 'Organizador para temperos da cozinha.', 'https://www.amazon.com.br/Condimentos-Girat%C3%B3rio-Armazenamento-Especiarias-Resistente/dp/B0GSBF4XV2/', 'disponivel', false, true),
+  (12, '2 lixeiras pequenas para o lavabo', 'Banheiro / Lavabo', 70.00, 'media', 'inteiro', 'Duas lixeiras compactas para os lavabos, considerando 2 unidades de R$ 35,00.', 'https://www.amazon.com.br/Viel-Polipropileno-Compacta-Banheiro-Escrit%C3%B3rio/dp/B08YDGR7JK/', 'disponivel', false, true),
+  (13, 'Porta-chaves de parede', 'Sala / Organização', 43.00, 'baixa', 'inteiro', 'Organizador de chaves para a entrada da casa.', 'https://www.amazon.com.br/Porta-Chaves-Prateleiras-Ganchos-Branco/dp/B0DWZ7GZVX/', 'disponivel', false, true),
+  (14, 'Tapete Casa Dona 200x300 cm caramelo', 'Sala / Decoração', 245.99, 'media', 'colaborativo', 'Tapete grande para compor a sala.', 'https://www.amazon.com.br/Felpudo-Casa-Dona-200x300-Caramelo/dp/B0865V926N/', 'disponivel', false, true),
+  (15, 'Mop com cesto de inox', 'Lavanderia / Limpeza', 69.90, 'alta', 'inteiro', 'Item importante para a limpeza da casa.', 'https://www.amazon.com.br/Girat%C3%B3rio-Esfreg%C3%A3o-Limpeza-Microfibra-Centrifuga/dp/B0GVGS8FT1/', 'disponivel', false, true),
+  (16, 'Cafeteira Oster Inox Compacta 0,75L OCAF300 - 220V', 'Cozinha', 119.00, 'media', 'inteiro', 'Cafeteira compacta em inox para o café do dia a dia dos moradores.', 'https://a.co/d/0a0ZVY5B', 'disponivel', false, true),
+  (17, 'Fruteira Metaltec 3 cestos com rodízios', 'Cozinha', 143.90, 'media', 'inteiro', 'Fruteira de chão com três cestos e rodízios para organizar frutas e itens da cozinha.', 'https://www.amazon.com.br/Metaltec-Fruteira-Resistente-Organizador-Refor%C3%A7ado/dp/B07RCZ552L/ref=sr_1_2_sspa?__mk_pt_BR=%C3%85M%C3%85%C5%BD%C3%95%C3%91&crid=1UB3479VPQ4AR&dib=eyJ2IjoiMSJ9.h4T18FvkROwO74GaygVv8KNd5cf5p-yL9Noh9knZbb0-1w_xjD1COYPvVoOQY986m7L6cZpTBcvgUemh-G_P5R5L1rwtpeKFVLvaRHaVjGB0phiCwcarcEyXn_zlk-6_R_KQgl8l3808CU3srMxp61gCFoyYdj-60UpE2lEBQPSyaVK4QRi980OP2QGusBub_jsOW5-zeD8cjoVaRMI3lLP7HUpFL_0y8zLHbN3xQVDFci4KImmdpY5t5ADN8tubb8lGEOsq9xKXTmig8hFn1B2KVQt1NIV0b8Ldi1PgIv0.5lPOS3hOPMZXzrDHCTKG8NekejU0jMPKVWAEQm1QfRs&dib_tag=se&keywords=fruteira&qid=1777743687&sprefix=fruteira%2Caps%2C223&sr=8-2-spons&ufe=app_do%3Aamzn1.fos.6a09f7ec-d911-4889-ad70-de8dd83c8a74&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&th=1', 'disponivel', false, true)
 on conflict (id) do update
 set
   name = excluded.name,
@@ -351,4 +368,5 @@ set
   type = excluded.type,
   description = excluded.description,
   link = excluded.link,
-  estimated_price = excluded.estimated_price;
+  estimated_price = excluded.estimated_price,
+  is_visible = excluded.is_visible;

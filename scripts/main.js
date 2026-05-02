@@ -261,7 +261,11 @@ function createContributionProgress(product) {
 
 function createProductImage(product) {
   if (!product.imagem) {
-    return "";
+    return `
+      <figure class="product-image-frame product-image-placeholder" aria-label="Imagem ilustrativa indisponível">
+        <span>${escapeHtml(product.categoria)}</span>
+      </figure>
+    `;
   }
 
   return `

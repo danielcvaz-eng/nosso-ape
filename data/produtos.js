@@ -12,24 +12,24 @@ const produtos = [
   },
   {
     id: 2,
-    nome: "Micro-ondas Philco 25L Limpa Fácil PMO28E",
+    nome: "Micro-ondas de Bancada Electrolux Efficient 36L ME36S - 220V Prata",
     categoria: "Cozinha",
-    preco: 593.10,
+    preco: 793.12,
     prioridade: "alta",
     tipo: "colaborativo",
-    descricao: "Micro-ondas para uso diário da casa.",
-    link: "https://www.amazon.com.br/Micro-ondas-Philco-Limpa-F%C3%A1cil-PMO28E/dp/B0CVQ7K8TG/",
+    descricao: "Micro-ondas grande e eficiente para o uso diário da casa, com capacidade de 36L.",
+    link: "https://a.co/d/0hMQB6eW",
     status: "disponivel"
   },
   {
     id: 3,
-    nome: "Almofadas para sofá - conjunto com 4 capas decorativas",
+    nome: "Almofadas decorativas cheias com zíper invisível",
     categoria: "Sala / Decoração",
-    preco: 79.99,
+    preco: 130.00,
     prioridade: "media",
     tipo: "inteiro",
-    descricao: "Conjunto decorativo para complementar o sofá.",
-    link: "https://www.temu.com/br/pacote--fronhas-decorativas--capa-de-almofada-com--de-chenille-fronha--e-confort%C3%A1vel-estilo--com-z%C3%ADper-para-presente-decora%C3%A7%C3%A3o--para-sof%C3%A1-quarto-e--g-601101941874365.html",
+    descricao: "Conjunto de almofadas decorativas cheias, em tons terrosos e claros, para deixar a sala mais confortável e bonita.",
+    link: "https://www.amazon.com.br/Almofadas-Decorativas-Cheias-Invis%C3%ADvel-Diversas/dp/B0GMJFRYYC/ref=sr_1_26?__mk_pt_BR=%C3%85M%C3%85%C5%BD%C3%95%C3%91&crid=2DNWHKIITJH9S&dib=eyJ2IjoiMSJ9.xP1S6v7-jAyX3W3wMyg-QG_xruK0bUN40EWbmXC1jfemnBKmsnecVmajDuQbpLzypUcq0-tiO-CR2iSbM0XX_iLWKa7nzTNdO2buRrIQbV8nolCuBjl4eGphrQWNE7QPbFxIqRyM8ekAi-bMuM0NPmbhjX_hrdhzVTAVx-sxK49qIL3AHrONn4F_l2xPdS1UZJbvEq1R5EI7SfeKcFS4Y-YBz3656m4evQvmKDdBsWDOBYb6d8UzZegOUnjfAzW2EWhXc0hW6fiD31_mz9yTXHBQJFAkZzQATUc5IGRXmxU.lo7qIP4evHf_4s3m8luBh6n4A2FsIx2rk8wVxRGiZ8M&dib_tag=se&keywords=almofadas%2Bcheias&qid=1777743535&sprefix=almofadas%2Bcheias%2Caps%2C221&sr=8-26&ufe=app_do%3Aamzn1.fos.6a09f7ec-d911-4889-ad70-de8dd83c8a74&th=1",
     status: "disponivel"
   },
   {
@@ -55,23 +55,10 @@ const produtos = [
     status: "disponivel"
   },
   {
-    id: 6,
-    nome: "Máquina de gelo EOS 12kg Ice Compact",
-    categoria: "Cozinha",
-    preco: 489.00,
-    precoEstimado: true,
-    prioridade: "baixa",
-    tipo: "colaborativo",
-    descricao: "Item útil para receber visitas e ocasiões especiais.",
-    link: "https://www.amazon.com.br/M%C3%A1quina-EOS-Compact-Black-EMG06P/dp/B0DX79WRJF/",
-    status: "disponivel"
-  },
-  {
     id: 7,
     nome: "Kit com 3 frigideiras com tampa de vidro",
     categoria: "Cozinha",
     preco: 84.90,
-    precoEstimado: true,
     prioridade: "alta",
     tipo: "inteiro",
     descricao: "Kit essencial para montar a cozinha.",
@@ -126,11 +113,10 @@ const produtos = [
     id: 12,
     nome: "2 lixeiras pequenas para o lavabo",
     categoria: "Banheiro / Lavabo",
-    preco: 60.00,
-    precoEstimado: true,
+    preco: 70.00,
     prioridade: "media",
     tipo: "inteiro",
-    descricao: "Duas lixeiras compactas para os lavabos.",
+    descricao: "Duas lixeiras compactas para os lavabos, considerando 2 unidades de R$ 35,00.",
     link: "https://www.amazon.com.br/Viel-Polipropileno-Compacta-Banheiro-Escrit%C3%B3rio/dp/B08YDGR7JK/",
     status: "disponivel"
   },
@@ -160,12 +146,33 @@ const produtos = [
     id: 15,
     nome: "Mop com cesto de inox",
     categoria: "Lavanderia / Limpeza",
-    preco: 59.90,
-    precoEstimado: true,
+    preco: 69.90,
     prioridade: "alta",
     tipo: "inteiro",
     descricao: "Item importante para a limpeza da casa.",
     link: "https://www.amazon.com.br/Girat%C3%B3rio-Esfreg%C3%A3o-Limpeza-Microfibra-Centrifuga/dp/B0GVGS8FT1/",
+    status: "disponivel"
+  },
+  {
+    id: 16,
+    nome: "Cafeteira Oster Inox Compacta 0,75L OCAF300 - 220V",
+    categoria: "Cozinha",
+    preco: 119.00,
+    prioridade: "media",
+    tipo: "inteiro",
+    descricao: "Cafeteira compacta em inox para o café do dia a dia dos moradores.",
+    link: "https://a.co/d/0a0ZVY5B",
+    status: "disponivel"
+  },
+  {
+    id: 17,
+    nome: "Fruteira Metaltec 3 cestos com rodízios",
+    categoria: "Cozinha",
+    preco: 143.90,
+    prioridade: "media",
+    tipo: "inteiro",
+    descricao: "Fruteira de chão com três cestos e rodízios para organizar frutas e itens da cozinha.",
+    link: "https://www.amazon.com.br/Metaltec-Fruteira-Resistente-Organizador-Refor%C3%A7ado/dp/B07RCZ552L/ref=sr_1_2_sspa?__mk_pt_BR=%C3%85M%C3%85%C5%BD%C3%95%C3%91&crid=1UB3479VPQ4AR&dib=eyJ2IjoiMSJ9.h4T18FvkROwO74GaygVv8KNd5cf5p-yL9Noh9knZbb0-1w_xjD1COYPvVoOQY986m7L6cZpTBcvgUemh-G_P5R5L1rwtpeKFVLvaRHaVjGB0phiCwcarcEyXn_zlk-6_R_KQgl8l3808CU3srMxp61gCFoyYdj-60UpE2lEBQPSyaVK4QRi980OP2QGusBub_jsOW5-zeD8cjoVaRMI3lLP7HUpFL_0y8zLHbN3xQVDFci4KImmdpY5t5ADN8tubb8lGEOsq9xKXTmig8hFn1B2KVQt1NIV0b8Ldi1PgIv0.5lPOS3hOPMZXzrDHCTKG8NekejU0jMPKVWAEQm1QfRs&dib_tag=se&keywords=fruteira&qid=1777743687&sprefix=fruteira%2Caps%2C223&sr=8-2-spons&ufe=app_do%3Aamzn1.fos.6a09f7ec-d911-4889-ad70-de8dd83c8a74&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&th=1",
     status: "disponivel"
   }
 ];

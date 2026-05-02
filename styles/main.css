@@ -524,6 +524,24 @@ a {
   object-fit: contain;
 }
 
+.product-image-placeholder {
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(247, 231, 219, 0.88)),
+    var(--surface-strong);
+}
+
+.product-image-placeholder span {
+  max-width: 76%;
+  color: var(--muted-color);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .product-card-header {
   display: flex;
   flex-wrap: wrap;

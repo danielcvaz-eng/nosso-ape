@@ -9,9 +9,10 @@ test.skip(process.env.RUN_SUPABASE_SMOKE !== "1", "Defina RUN_SUPABASE_SMOKE=1 p
 test("catalogo carrega usando Supabase real", async ({ page }) => {
   await page.goto(baseUrl);
 
-  await expect(page.locator(".product-card")).toHaveCount(15);
+  await expect(page.locator(".product-card")).toHaveCount(16);
   await expect(page.locator("#backend-state-note")).toContainText("Supabase");
-  await expect(page.getByRole("heading", { name: /micro-ondas/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /micro-ondas de bancada electrolux efficient 36l/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /máquina de gelo/i })).toHaveCount(0);
 });
 
 test("anonimo nao consegue confirmar contribuicao via RPC", async ({ request }) => {

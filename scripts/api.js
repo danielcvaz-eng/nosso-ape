@@ -12,11 +12,10 @@ import {
 
 const PRODUCT_IMAGES = {
   1: "assets/produtos/01-lava-e-seca-electrolux-inverter-12kg-lfc12.webp",
-  2: "assets/produtos/02-micro-ondas-philco-25l-limpa-facil-pmo28e.webp",
-  3: "assets/produtos/03-almofadas-para-sofa-conjunto-com-4-capas-decorativas.webp",
+  2: "assets/produtos/02-micro-ondas-electrolux-efficient-me36s.webp",
+  3: "assets/produtos/03-almofadas-decorativas-cheias.webp",
   4: "assets/produtos/04-forno-eletrico-mondial-family-ii-42l.webp",
   5: "assets/produtos/05-panela-de-pressao-eletrica-midea-6l.webp",
-  6: "assets/produtos/06-maquina-de-gelo-eos-12kg-ice-compact.webp",
   7: "assets/produtos/07-kit-com-3-frigideiras-com-tampa-de-vidro.webp",
   8: "assets/produtos/08-assadeira-forma-retangular-antiaderente.webp",
   9: "assets/produtos/09-marinex-jogo-de-assadeiras-opaline-kit-3-unidades.webp",
@@ -27,6 +26,8 @@ const PRODUCT_IMAGES = {
   14: "assets/produtos/14-tapete-casa-dona-200x300-cm-caramelo.webp",
   15: "assets/produtos/15-mop-com-cesto-de-inox.webp"
 };
+
+const HIDDEN_PRODUCT_IDS = new Set([6]);
 
 function getProductImage(productId) {
   return PRODUCT_IMAGES[Number(productId)] || "";
@@ -51,6 +52,7 @@ function toProduct(row, progress = {}) {
     link: row.link,
     status: row.status,
     precoEstimado: Boolean(row.estimated_price),
+    isVisible: row.is_visible !== false,
     imagem: getProductImage(row.id),
     confirmedAmount: Number(progress.confirmed_amount || 0)
   };
@@ -76,11 +78,12 @@ export async function loadCatalogData() {
       supabaseRest("/product_progress?select=*", publicAccess)
     ]);
 
+    const visibleProductRows = productRows.filter((row) => row.is_visible !== false && !HIDDEN_PRODUCT_IDS.has(Number(row.id)));
     const progressMap = buildProgressMap(progressRows);
 
     return {
       mode: "supabase",
-      products: productRows.map((row) => toProduct(row, progressMap[row.id])),
+      products: visibleProductRows.map((row) => toProduct(row, progressMap[row.id])),
       message: "Dados sincronizados com Supabase."
     };
   } catch (error) {
