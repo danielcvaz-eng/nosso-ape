@@ -26,6 +26,10 @@ playwright/.cache/
 # Arquivos de sistema operacional
 .DS_Store
 Thumbs.db
+*:Zone.Identifier
+
+# Fontes locais de imagem convertidas para WebP
+assets/hero/*.jpg
 
 # Arquivos locais do VS Code
 docs/*.code-workspace

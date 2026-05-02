@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "convert:hero": "node tools/convert-hero-image.mjs",
     "test:e2e": "playwright test"
   },
   "devDependencies": {

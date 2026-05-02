@@ -3,6 +3,7 @@
 ## Onde ficam os dados
 
 - Produtos oficiais: `data/produtos.js`
+- Foto principal do topo: `assets/hero/apartamento-sala.webp`
 - Imagens locais dos produtos: `assets/produtos/`
 - Configurações fixas de Pix, WhatsApp e textos principais: `scripts/config.js`
 - Configurações do Supabase: `scripts/config.js`
@@ -22,6 +23,7 @@ Arquivos:
 - `assets/produtos/*.webp`: imagens usadas nos cards
 - `assets/produtos-imagens.zip`: pacote de backup das imagens
 - `tools/fetch-product-images.mjs`: script auxiliar usado para buscar e regenerar imagens públicas dos produtos
+- `tools/convert-hero-image.mjs`: script auxiliar para converter `assets/hero/apartamento-sala.jpg` em `assets/hero/apartamento-sala.webp`
 
 As imagens são ligadas aos produtos pelo `id` no mapa `PRODUCT_IMAGES` em `scripts/api.js`. Isso evita criar coluna nova no Supabase só para imagem e mantém a integração simples: o Supabase continua sendo a fonte dos dados oficiais, enquanto o frontend complementa com a imagem local.
 

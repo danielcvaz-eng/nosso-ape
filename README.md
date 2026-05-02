@@ -63,6 +63,8 @@ nosso-ape/
 ├── playwright.config.mjs
 ├── .gitignore
 ├── assets/
+│   ├── hero/
+│   │   └── apartamento-sala.webp
 │   ├── produtos/
 │   │   └── imagens dos produtos em WebP
 │   └── produtos-imagens.zip
@@ -341,6 +343,26 @@ O arquivo abaixo é apenas backup das imagens:
 ```text
 assets/produtos-imagens.zip
 ```
+
+A foto principal do topo do site fica em:
+
+```text
+assets/hero/apartamento-sala.webp
+```
+
+Para trocar essa foto principal, salve a imagem original como:
+
+```text
+assets/hero/apartamento-sala.jpg
+```
+
+Depois rode:
+
+```bash
+npm run convert:hero
+```
+
+Esse comando gera o arquivo `.webp` usado pelo site.
 
 ## Backend Supabase
 
