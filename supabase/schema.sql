@@ -28,16 +28,21 @@ create table if not exists public.contributions (
   amount numeric(10, 2) not null check (amount > 0),
   contribution_type text not null check (contribution_type in ('inteiro', 'colaborativo')),
   payment_method text not null default 'pix' check (payment_method = 'pix'),
-  status text not null default 'pending' check (status in ('pending', 'confirmed', 'rejected')),
+  status text not null default 'pending' check (status in ('pending', 'awaiting_payment', 'pending_manual_review', 'confirmed', 'rejected', 'expired', 'failed')),
+  provider text check (provider is null or provider in ('asaas')),
+  payment_status text check (payment_status is null or payment_status in ('manual_pending', 'awaiting_payment', 'paid', 'requires_manual_review', 'expired', 'failed', 'manual_confirmed')),
+  confirmation_source text check (confirmation_source is null or confirmation_source in ('manual', 'manual_fallback', 'asaas_webhook')),
   created_at timestamptz not null default now(),
   confirmed_at timestamptz,
   confirmed_by uuid references auth.users(id),
   confirmed_by_email text,
   rejection_reason text check (rejection_reason is null or char_length(rejection_reason) <= 300),
   constraint contribution_confirmation_consistency check (
-    (status = 'pending' and confirmed_at is null and confirmed_by is null and confirmed_by_email is null)
+    (status in ('pending', 'awaiting_payment', 'pending_manual_review', 'expired', 'failed') and confirmed_at is null and confirmed_by is null and confirmed_by_email is null)
     or
-    (status in ('confirmed', 'rejected') and confirmed_at is not null and confirmed_by is not null and confirmed_by_email is not null)
+    (status = 'confirmed' and confirmed_at is not null and confirmed_by_email is not null and (confirmed_by is not null or confirmation_source = 'asaas_webhook'))
+    or
+    (status = 'rejected' and confirmed_at is not null and confirmed_by is not null and confirmed_by_email is not null)
   )
 );
 
@@ -47,12 +52,53 @@ create table if not exists public.allowed_admins (
   constraint allowed_admins_email_lowercase check (email = lower(email))
 );
 
+create table if not exists public.payments (
+  id uuid primary key default gen_random_uuid(),
+  contribution_id uuid not null unique references public.contributions(id) on delete restrict,
+  product_id integer not null references public.products(id) on delete restrict,
+  provider text not null check (provider in ('asaas')),
+  provider_payment_id text not null unique,
+  amount numeric(10, 2) not null check (amount > 0),
+  status text not null default 'awaiting_payment' check (status in ('awaiting_payment', 'paid', 'confirmed', 'requires_manual_review', 'expired', 'failed', 'cancelled')),
+  qr_code_payload text,
+  qr_code_image text,
+  expires_at timestamptz,
+  paid_at timestamptz,
+  raw_provider_payload jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.payment_events (
+  id uuid primary key default gen_random_uuid(),
+  provider text not null check (provider in ('asaas')),
+  event_type text not null,
+  event_fingerprint text not null unique,
+  provider_payment_id text,
+  payload jsonb not null,
+  processing_status text not null default 'received' check (processing_status in ('received', 'processed', 'ignored', 'duplicate', 'requires_manual_review', 'failed')),
+  processed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.pix_charge_attempts (
+  id uuid primary key default gen_random_uuid(),
+  ip_hash text not null,
+  product_id integer references public.products(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists idx_products_status on public.products(status);
 create index if not exists idx_products_category on public.products(category);
 create index if not exists idx_products_is_visible on public.products(is_visible);
 create index if not exists idx_contributions_product_id on public.contributions(product_id);
 create index if not exists idx_contributions_status on public.contributions(status);
 create index if not exists idx_contributions_created_at on public.contributions(created_at desc);
+create index if not exists idx_payments_contribution_id on public.payments(contribution_id);
+create index if not exists idx_payments_provider_payment_id on public.payments(provider_payment_id);
+create index if not exists idx_payments_status on public.payments(status);
+create index if not exists idx_payment_events_provider_payment_id on public.payment_events(provider_payment_id);
+create index if not exists idx_pix_charge_attempts_ip_created_at on public.pix_charge_attempts(ip_hash, created_at desc);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -68,6 +114,12 @@ $$;
 drop trigger if exists set_products_updated_at on public.products;
 create trigger set_products_updated_at
 before update on public.products
+for each row
+execute function public.set_updated_at();
+
+drop trigger if exists set_payments_updated_at on public.payments;
+create trigger set_payments_updated_at
+before update on public.payments
 for each row
 execute function public.set_updated_at();
 
@@ -104,7 +156,7 @@ begin
   select * into target_contribution
   from public.contributions
   where id = contribution_id
-    and status = 'pending'
+    and status in ('pending', 'awaiting_payment', 'pending_manual_review')
   for update;
 
   if target_contribution.id is null then
@@ -153,12 +205,17 @@ begin
   update public.contributions
   set
     status = 'confirmed',
+    payment_status = coalesce(payment_status, 'manual_confirmed'),
+    confirmation_source = case
+      when provider = 'asaas' then 'manual_fallback'
+      else 'manual'
+    end,
     confirmed_at = now(),
     confirmed_by = auth.uid(),
     confirmed_by_email = lower(coalesce(auth.jwt() ->> 'email', '')),
     rejection_reason = null
   where id = contribution_id
-    and status = 'pending'
+    and status in ('pending', 'awaiting_payment', 'pending_manual_review')
   returning * into target_contribution;
 
   if target_contribution.id is null then
@@ -197,12 +254,17 @@ begin
   update public.contributions
   set
     status = 'rejected',
+    payment_status = case
+      when provider = 'asaas' and payment_status = 'paid' then 'requires_manual_review'
+      else payment_status
+    end,
+    confirmation_source = 'manual',
     confirmed_at = now(),
     confirmed_by = auth.uid(),
     confirmed_by_email = lower(coalesce(auth.jwt() ->> 'email', '')),
     rejection_reason = nullif(trim(reason), '')
   where id = contribution_id
-    and status = 'pending'
+    and status in ('pending', 'awaiting_payment', 'pending_manual_review')
   returning * into target_contribution;
 
   if target_contribution.id is null then
@@ -210,6 +272,242 @@ begin
   end if;
 
   return target_contribution;
+end;
+$$;
+
+create or replace function public.process_asaas_payment_event(
+  event_type text,
+  event_fingerprint text,
+  provider_payment_id text,
+  provider_amount numeric,
+  payload jsonb
+)
+returns jsonb
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  target_payment public.payments;
+  target_contribution public.contributions;
+  target_product public.products;
+  confirmed_total numeric(10, 2);
+  next_total numeric(10, 2);
+  paid_events text[] := array['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED'];
+begin
+  begin
+    insert into public.payment_events (
+      provider,
+      event_type,
+      event_fingerprint,
+      provider_payment_id,
+      payload,
+      processing_status
+    )
+    values (
+      'asaas',
+      event_type,
+      event_fingerprint,
+      provider_payment_id,
+      coalesce(payload, '{}'::jsonb),
+      'received'
+    );
+  exception
+    when unique_violation then
+      return jsonb_build_object('status', 'duplicate');
+  end;
+
+  if event_type <> all(paid_events) then
+    update public.payment_events
+    set processing_status = 'ignored', processed_at = now()
+    where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+
+    return jsonb_build_object('status', 'ignored', 'event_type', event_type);
+  end if;
+
+  select * into target_payment
+  from public.payments
+  where payments.provider = 'asaas'
+    and payments.provider_payment_id = process_asaas_payment_event.provider_payment_id
+  for update;
+
+  if target_payment.id is null then
+    update public.payment_events
+    set processing_status = 'requires_manual_review', processed_at = now()
+    where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+
+    return jsonb_build_object('status', 'requires_manual_review', 'reason', 'payment_not_found');
+  end if;
+
+  select * into target_contribution
+  from public.contributions
+  where id = target_payment.contribution_id
+  for update;
+
+  select * into target_product
+  from public.products
+  where id = target_payment.product_id
+  for update;
+
+  if target_contribution.id is null or target_product.id is null then
+    update public.payments
+    set status = 'requires_manual_review', raw_provider_payload = payload
+    where id = target_payment.id;
+
+    update public.payment_events
+    set processing_status = 'requires_manual_review', processed_at = now()
+    where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+
+    return jsonb_build_object('status', 'requires_manual_review', 'reason', 'missing_contribution_or_product');
+  end if;
+
+  if target_contribution.status = 'confirmed' then
+    update public.payments
+    set status = 'paid',
+        paid_at = coalesce(paid_at, now()),
+        raw_provider_payload = payload
+    where id = target_payment.id;
+
+    update public.payment_events
+    set processing_status = 'processed', processed_at = now()
+    where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+
+    return jsonb_build_object('status', 'already_confirmed');
+  end if;
+
+  if abs(coalesce(provider_amount, 0) - target_payment.amount) > 0.01 then
+    update public.payments
+    set status = 'requires_manual_review',
+        raw_provider_payload = payload
+    where id = target_payment.id;
+
+    update public.contributions
+    set status = 'pending_manual_review',
+        payment_status = 'requires_manual_review'
+    where id = target_contribution.id
+      and status in ('awaiting_payment', 'pending_manual_review', 'failed');
+
+    update public.payment_events
+    set processing_status = 'requires_manual_review', processed_at = now()
+    where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+
+    return jsonb_build_object('status', 'requires_manual_review', 'reason', 'amount_mismatch');
+  end if;
+
+  if not target_product.is_visible or target_product.status = 'recebido' then
+    update public.payments
+    set status = 'requires_manual_review',
+        paid_at = coalesce(paid_at, now()),
+        raw_provider_payload = payload
+    where id = target_payment.id;
+
+    update public.contributions
+    set status = 'pending_manual_review',
+        payment_status = 'paid'
+    where id = target_contribution.id
+      and status in ('awaiting_payment', 'pending_manual_review', 'failed');
+
+    update public.payment_events
+    set processing_status = 'requires_manual_review', processed_at = now()
+    where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+
+    return jsonb_build_object('status', 'requires_manual_review', 'reason', 'product_unavailable');
+  end if;
+
+  if target_product.type = 'inteiro' then
+    if target_contribution.contribution_type <> 'inteiro' or target_contribution.amount <> target_product.price then
+      update public.payments
+      set status = 'requires_manual_review',
+          paid_at = coalesce(paid_at, now()),
+          raw_provider_payload = payload
+      where id = target_payment.id;
+
+      update public.contributions
+      set status = 'pending_manual_review',
+          payment_status = 'paid'
+      where id = target_contribution.id
+        and status in ('awaiting_payment', 'pending_manual_review', 'failed');
+
+      update public.payment_events
+      set processing_status = 'requires_manual_review', processed_at = now()
+      where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+
+      return jsonb_build_object('status', 'requires_manual_review', 'reason', 'invalid_whole_contribution');
+    end if;
+  else
+    select coalesce(sum(amount), 0)
+    into confirmed_total
+    from public.contributions
+    where product_id = target_product.id
+      and status = 'confirmed'
+      and id <> target_contribution.id;
+
+    next_total := confirmed_total + target_contribution.amount;
+
+    if next_total > target_product.price then
+      update public.payments
+      set status = 'requires_manual_review',
+          paid_at = coalesce(paid_at, now()),
+          raw_provider_payload = payload
+      where id = target_payment.id;
+
+      update public.contributions
+      set status = 'pending_manual_review',
+          payment_status = 'paid'
+      where id = target_contribution.id
+        and status in ('awaiting_payment', 'pending_manual_review', 'failed');
+
+      update public.payment_events
+      set processing_status = 'requires_manual_review', processed_at = now()
+      where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+
+      return jsonb_build_object('status', 'requires_manual_review', 'reason', 'exceeds_remaining_amount');
+    end if;
+  end if;
+
+  update public.contributions
+  set status = 'confirmed',
+      payment_status = 'paid',
+      confirmation_source = 'asaas_webhook',
+      confirmed_at = now(),
+      confirmed_by = null,
+      confirmed_by_email = 'asaas-webhook',
+      rejection_reason = null
+  where id = target_contribution.id
+    and status in ('awaiting_payment', 'pending_manual_review', 'failed')
+  returning * into target_contribution;
+
+  if target_contribution.id is null then
+    update public.payment_events
+    set processing_status = 'requires_manual_review', processed_at = now()
+    where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+
+    return jsonb_build_object('status', 'requires_manual_review', 'reason', 'invalid_contribution_status');
+  end if;
+
+  update public.payments
+  set status = 'paid',
+      paid_at = coalesce(paid_at, now()),
+      raw_provider_payload = payload
+  where id = target_payment.id;
+
+  if target_product.type = 'inteiro' then
+    update public.products
+    set status = 'recebido'
+    where id = target_product.id;
+  else
+    if next_total >= target_product.price then
+      update public.products
+      set status = 'recebido'
+      where id = target_product.id;
+    end if;
+  end if;
+
+  update public.payment_events
+  set processing_status = 'processed', processed_at = now()
+  where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+
+  return jsonb_build_object('status', 'processed', 'contribution_id', target_contribution.id);
 end;
 $$;
 
@@ -227,6 +525,9 @@ group by products.id;
 alter table public.products enable row level security;
 alter table public.contributions enable row level security;
 alter table public.allowed_admins enable row level security;
+alter table public.payments enable row level security;
+alter table public.payment_events enable row level security;
+alter table public.pix_charge_attempts enable row level security;
 
 drop policy if exists "Public can read products" on public.products;
 drop policy if exists "Public can read visible products" on public.products;
@@ -310,6 +611,28 @@ to authenticated
 using (public.current_user_is_admin())
 with check (public.current_user_is_admin());
 
+drop policy if exists "Admins can read payments" on public.payments;
+create policy "Admins can read payments"
+on public.payments
+for select
+to authenticated
+using (public.current_user_is_admin());
+
+drop policy if exists "Admins can update payments" on public.payments;
+create policy "Admins can update payments"
+on public.payments
+for update
+to authenticated
+using (public.current_user_is_admin())
+with check (public.current_user_is_admin());
+
+drop policy if exists "Admins can read payment events" on public.payment_events;
+create policy "Admins can read payment events"
+on public.payment_events
+for select
+to authenticated
+using (public.current_user_is_admin());
+
 drop policy if exists "Admins can read allowed admins" on public.allowed_admins;
 create policy "Admins can read allowed admins"
 on public.allowed_admins
@@ -320,6 +643,7 @@ using (email = lower(coalesce(auth.jwt() ->> 'email', '')));
 revoke all on function public.confirm_contribution(uuid) from public, anon;
 revoke all on function public.reject_contribution(uuid, text) from public, anon;
 revoke all on function public.current_user_is_admin() from public, anon;
+revoke all on function public.process_asaas_payment_event(text, text, text, numeric, jsonb) from public, anon, authenticated;
 
 grant usage on schema public to anon, authenticated;
 grant select on public.products to anon, authenticated;
@@ -328,10 +652,13 @@ grant insert on public.contributions to anon, authenticated;
 grant select (id, product_id, amount, status) on public.contributions to anon;
 grant select, update on public.products to authenticated;
 grant select, update on public.contributions to authenticated;
+grant select, update on public.payments to authenticated;
+grant select on public.payment_events to authenticated;
 grant select on public.allowed_admins to authenticated;
 grant execute on function public.current_user_is_admin() to authenticated;
 grant execute on function public.confirm_contribution(uuid) to authenticated;
 grant execute on function public.reject_contribution(uuid, text) to authenticated;
+grant execute on function public.process_asaas_payment_event(text, text, text, numeric, jsonb) to service_role;
 
 insert into public.allowed_admins (email)
 values
