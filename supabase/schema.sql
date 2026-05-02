@@ -120,6 +120,10 @@ begin
     raise exception 'product not found';
   end if;
 
+  if not target_product.is_visible then
+    raise exception 'product hidden';
+  end if;
+
   if target_product.status = 'recebido' then
     raise exception 'product already received';
   end if;
