@@ -83,7 +83,10 @@ supabase functions deploy create-asaas-pix-charge
 supabase functions deploy asaas-webhook
 ```
 
-O arquivo `supabase/config.toml` deixa `asaas-webhook` com `verify_jwt = false`, porque o Asaas não envia JWT do Supabase. A segurança do webhook vem do header `asaas-access-token`.
+O arquivo `supabase/config.toml` deixa as funções com `verify_jwt = false`.
+
+- `asaas-webhook`: o Asaas não envia JWT do Supabase; a segurança vem do header `asaas-access-token`.
+- `create-asaas-pix-charge`: o site público usa publishable key (`sb_publishable_...`), que não é JWT. A função continua protegida por validação de produto/valor, RLS via service role interno, rate limit por IP e sem secrets no frontend.
 
 ## Webhook no Asaas
 
