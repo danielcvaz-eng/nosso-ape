@@ -523,6 +523,8 @@ https://nhoexiahfcqqgzombptj.supabase.co/functions/v1/asaas-webhook
 
 Ative eventos de pagamento recebido/confirmado e configure o mesmo token salvo em `ASAAS_WEBHOOK_TOKEN`.
 
+A função aceita o token no header `asaas-access-token` e também no header legado `asaas_access_token`.
+
 A criação de Pix tem rate limit básico de 10 tentativas por IP por hora. Em caso de falha depois de criar uma cobrança no Asaas, a função tenta cancelar a cobrança para evitar Pix sem vínculo local.
 
 Guia completo:

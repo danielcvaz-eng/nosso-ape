@@ -226,7 +226,7 @@ begin
   if event_type <> all(paid_events) then
     update public.payment_events
     set processing_status = 'ignored', processed_at = now()
-    where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+    where payment_events.event_fingerprint = process_asaas_payment_event.event_fingerprint;
 
     return jsonb_build_object('status', 'ignored', 'event_type', event_type);
   end if;
@@ -240,7 +240,7 @@ begin
   if target_payment.id is null then
     update public.payment_events
     set processing_status = 'requires_manual_review', processed_at = now()
-    where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+    where payment_events.event_fingerprint = process_asaas_payment_event.event_fingerprint;
 
     return jsonb_build_object('status', 'requires_manual_review', 'reason', 'payment_not_found');
   end if;
@@ -262,7 +262,7 @@ begin
 
     update public.payment_events
     set processing_status = 'requires_manual_review', processed_at = now()
-    where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+    where payment_events.event_fingerprint = process_asaas_payment_event.event_fingerprint;
 
     return jsonb_build_object('status', 'requires_manual_review', 'reason', 'missing_contribution_or_product');
   end if;
@@ -276,7 +276,7 @@ begin
 
     update public.payment_events
     set processing_status = 'processed', processed_at = now()
-    where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+    where payment_events.event_fingerprint = process_asaas_payment_event.event_fingerprint;
 
     return jsonb_build_object('status', 'already_confirmed');
   end if;
@@ -295,7 +295,7 @@ begin
 
     update public.payment_events
     set processing_status = 'requires_manual_review', processed_at = now()
-    where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+    where payment_events.event_fingerprint = process_asaas_payment_event.event_fingerprint;
 
     return jsonb_build_object('status', 'requires_manual_review', 'reason', 'amount_mismatch');
   end if;
@@ -315,7 +315,7 @@ begin
 
     update public.payment_events
     set processing_status = 'requires_manual_review', processed_at = now()
-    where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+    where payment_events.event_fingerprint = process_asaas_payment_event.event_fingerprint;
 
     return jsonb_build_object('status', 'requires_manual_review', 'reason', 'product_unavailable');
   end if;
@@ -336,7 +336,7 @@ begin
 
       update public.payment_events
       set processing_status = 'requires_manual_review', processed_at = now()
-      where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+      where payment_events.event_fingerprint = process_asaas_payment_event.event_fingerprint;
 
       return jsonb_build_object('status', 'requires_manual_review', 'reason', 'invalid_whole_contribution');
     end if;
@@ -365,7 +365,7 @@ begin
 
       update public.payment_events
       set processing_status = 'requires_manual_review', processed_at = now()
-      where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+      where payment_events.event_fingerprint = process_asaas_payment_event.event_fingerprint;
 
       return jsonb_build_object('status', 'requires_manual_review', 'reason', 'exceeds_remaining_amount');
     end if;
@@ -386,7 +386,7 @@ begin
   if target_contribution.id is null then
     update public.payment_events
     set processing_status = 'requires_manual_review', processed_at = now()
-    where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+    where payment_events.event_fingerprint = process_asaas_payment_event.event_fingerprint;
 
     return jsonb_build_object('status', 'requires_manual_review', 'reason', 'invalid_contribution_status');
   end if;
@@ -411,7 +411,7 @@ begin
 
   update public.payment_events
   set processing_status = 'processed', processed_at = now()
-  where event_fingerprint = process_asaas_payment_event.event_fingerprint;
+  where payment_events.event_fingerprint = process_asaas_payment_event.event_fingerprint;
 
   return jsonb_build_object('status', 'processed', 'contribution_id', target_contribution.id);
 end;

@@ -27,6 +27,12 @@ function getPaymentAmount(payload: Record<string, unknown>) {
   return Number(payment.value || payment.netValue || 0);
 }
 
+function getReceivedWebhookToken(request: Request) {
+  return request.headers.get("asaas-access-token")
+    || request.headers.get("asaas_access_token")
+    || "";
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
     return optionsResponse();
@@ -37,7 +43,7 @@ Deno.serve(async (request) => {
   }
 
   const webhookToken = getEnv("ASAAS_WEBHOOK_TOKEN");
-  const receivedToken = request.headers.get("asaas-access-token") || "";
+  const receivedToken = getReceivedWebhookToken(request);
 
   if (!webhookToken || receivedToken !== webhookToken) {
     return jsonResponse({ error: "Webhook não autorizado." }, { status: 401 });

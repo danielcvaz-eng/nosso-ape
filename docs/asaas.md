@@ -105,6 +105,8 @@ PAYMENT_CONFIRMED
 
 Configure o token do webhook com o mesmo valor de `ASAAS_WEBHOOK_TOKEN`. O Asaas envia esse valor no header `asaas-access-token`.
 
+A função também aceita o header legado `asaas_access_token`, para evitar falha por variação de nome do header em ambientes/painéis diferentes do Asaas.
+
 ## Aplicar patch SQL
 
 No Supabase SQL Editor, execute:
