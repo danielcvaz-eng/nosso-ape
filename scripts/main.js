@@ -1,6 +1,7 @@
 import { APP_CONFIG, LABELS, MODAL_STEPS } from "./config.js";
 import {
   confirmContribution,
+  createAsaasPixCharge,
   initializeAdminSession,
   loadCatalogData,
   loadPendingContributions,
@@ -49,7 +50,12 @@ const elements = {
   pixType: document.getElementById("pix-type"),
   pixReceiver: document.getElementById("pix-receiver"),
   pixValue: document.getElementById("pix-value"),
+  dynamicPixBox: document.getElementById("dynamic-pix-box"),
+  pixQrCode: document.getElementById("pix-qr-code"),
+  pixCopyPaste: document.getElementById("pix-copy-paste"),
+  pixExpirationNote: document.getElementById("pix-expiration-note"),
   copyPixButton: document.getElementById("copy-pix-button"),
+  copyPixPayloadButton: document.getElementById("copy-pix-payload-button"),
   copyFeedback: document.getElementById("copy-feedback"),
   paymentConfirmation: document.getElementById("payment-confirmation"),
   successMessage: document.getElementById("success-message"),
@@ -66,6 +72,10 @@ const appState = {
   currentStep: "details",
   selectedProduct: null,
   flowData: null,
+  payment: {
+    mode: "manual",
+    charge: null
+  },
   products: [],
   backendMode: "loading",
   backendMessage: "Carregando catálogo...",
@@ -447,6 +457,47 @@ function setPrimaryButtonState() {
   elements.primaryFlowButton.disabled = !elements.paymentConfirmation.checked;
 }
 
+function resetPixDetails() {
+  appState.payment = {
+    mode: "manual",
+    charge: null
+  };
+  elements.dynamicPixBox.classList.add("hidden");
+  elements.pixQrCode.classList.add("hidden");
+  elements.pixQrCode.removeAttribute("src");
+  elements.pixCopyPaste.value = "";
+  elements.pixExpirationNote.textContent = "";
+  elements.copyFeedback.textContent = "";
+  elements.copyPixPayloadButton.classList.add("hidden");
+}
+
+function renderDynamicPixCharge(charge) {
+  appState.payment = {
+    mode: "asaas",
+    charge
+  };
+  elements.dynamicPixBox.classList.remove("hidden");
+  elements.copyPixPayloadButton.classList.toggle("hidden", !charge.qr_code_payload);
+  elements.pixCopyPaste.value = charge.qr_code_payload || "";
+
+  if (charge.qr_code_image) {
+    elements.pixQrCode.src = `data:image/png;base64,${charge.qr_code_image}`;
+    elements.pixQrCode.classList.remove("hidden");
+  } else {
+    elements.pixQrCode.classList.add("hidden");
+    elements.pixQrCode.removeAttribute("src");
+  }
+
+  elements.pixExpirationNote.textContent = charge.expires_at
+    ? `Este Pix dinâmico expira em ${new Date(charge.expires_at).toLocaleString("pt-BR")}.`
+    : "Após o pagamento, a confirmação automática pode levar alguns instantes.";
+}
+
+function useManualPixFallback(message) {
+  resetPixDetails();
+  elements.copyFeedback.textContent = message || "Pix automático indisponível. Use a chave Pix manual abaixo.";
+}
+
 function updateModalStep(step) {
   appState.currentStep = step;
   const stepConfig = MODAL_STEPS[step];
@@ -533,6 +584,7 @@ function openModal(product) {
 
   appState.selectedProduct = product;
   appState.flowData = null;
+  resetPixDetails();
 
   elements.selectedProduct.innerHTML = createSelectedProductSummary(product);
   elements.giftForm.reset();
@@ -553,6 +605,7 @@ function closeModal() {
   document.body.classList.remove("modal-open");
   appState.selectedProduct = null;
   appState.flowData = null;
+  resetPixDetails();
   updateModalStep("details");
 }
 
@@ -599,7 +652,7 @@ function validateInitialStep() {
   };
 }
 
-function preparePixStep() {
+async function preparePixStep() {
   const validatedData = validateInitialStep();
 
   if (!validatedData) {
@@ -610,6 +663,26 @@ function preparePixStep() {
   elements.pixValue.textContent = formatCurrency(validatedData.selectedValue);
   elements.paymentConfirmation.checked = false;
   elements.copyFeedback.textContent = "";
+
+  if (isSupabaseMode() && APP_CONFIG.asaasPix?.enabled) {
+    elements.primaryFlowButton.disabled = true;
+    elements.primaryFlowButton.textContent = "Gerando Pix...";
+
+    try {
+      const charge = await createAsaasPixCharge({
+        product: appState.selectedProduct,
+        flowData: validatedData
+      });
+
+      renderDynamicPixCharge(charge);
+      elements.successMessage.textContent = "Seu Pix foi gerado. Depois do pagamento, o Asaas deve confirmar automaticamente. Se algo falhar, os moradores conseguem confirmar manualmente.";
+    } catch (error) {
+      console.warn("[Nosso Ape] Pix automático indisponível. Usando fallback manual.", error);
+      useManualPixFallback("Pix automático indisponível agora. Use a chave Pix manual e avise os moradores pelo WhatsApp.");
+      elements.successMessage.textContent = "Sua intenção foi enviada para conferência manual dos moradores. Se quiser, envie também a mensagem pronta no WhatsApp para avisar.";
+    }
+  }
+
   updateModalStep("pix");
 }
 
@@ -628,6 +701,21 @@ async function registerSimulatedPayment() {
   elements.primaryFlowButton.textContent = "Registrando...";
 
   if (isSupabaseMode()) {
+    if (appState.payment.mode === "asaas" && appState.payment.charge) {
+      elements.successMessage.textContent = "Pix registrado no Asaas. Assim que o pagamento for identificado, o presente será atualizado automaticamente. Se a confirmação não aparecer, os moradores ainda conseguem conferir manualmente.";
+
+      try {
+        await refreshCatalogFromBackend();
+        appState.selectedProduct = getSelectedProduct(appState.selectedProduct.id);
+      } catch (error) {
+        console.warn("[Nosso Ape] Pix criado, mas o catálogo não foi atualizado.", error);
+        elements.successMessage.textContent = "Pix registrado no Asaas. Não foi possível atualizar o catálogo agora, mas não gere outro Pix para evitar duplicidade.";
+      }
+
+      updateModalStep("success");
+      return;
+    }
+
     try {
       await submitPendingContribution({
         product: appState.selectedProduct,
@@ -715,23 +803,37 @@ function openWhatsApp(message) {
 
 async function copyPixKey() {
   try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(APP_CONFIG.pix.key);
-    } else {
-      const temporaryField = document.createElement("textarea");
-      temporaryField.value = APP_CONFIG.pix.key;
-      temporaryField.setAttribute("readonly", "");
-      temporaryField.style.position = "absolute";
-      temporaryField.style.left = "-9999px";
-      document.body.appendChild(temporaryField);
-      temporaryField.select();
-      document.execCommand("copy");
-      document.body.removeChild(temporaryField);
-    }
+    await copyText(APP_CONFIG.pix.key);
 
     elements.copyFeedback.textContent = "Chave Pix copiada.";
   } catch {
     elements.copyFeedback.textContent = "Não foi possível copiar automaticamente. Selecione a chave e copie manualmente.";
+  }
+}
+
+async function copyText(value) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  const temporaryField = document.createElement("textarea");
+  temporaryField.value = value;
+  temporaryField.setAttribute("readonly", "");
+  temporaryField.style.position = "absolute";
+  temporaryField.style.left = "-9999px";
+  document.body.appendChild(temporaryField);
+  temporaryField.select();
+  document.execCommand("copy");
+  document.body.removeChild(temporaryField);
+}
+
+async function copyPixPayload() {
+  try {
+    await copyText(elements.pixCopyPaste.value);
+    elements.copyFeedback.textContent = "Pix copia e cola copiado.";
+  } catch {
+    elements.copyFeedback.textContent = "Não foi possível copiar o Pix automaticamente. Selecione o código e copie manualmente.";
   }
 }
 
@@ -856,6 +958,15 @@ function renderPendingContributions(contributions = []) {
   elements.pendingList.innerHTML = contributions.map((contribution) => {
     const productName = contribution.products?.name || `Produto #${contribution.product_id}`;
     const productCategory = contribution.products?.category || "Categoria não informada";
+    const payment = Array.isArray(contribution.payments) ? contribution.payments[0] : contribution.payments;
+    const paymentStatusText = contribution.provider === "asaas"
+      ? `Asaas: ${payment?.status || contribution.payment_status || "aguardando"}${payment?.provider_payment_id ? ` • ${payment.provider_payment_id}` : ""}`
+      : "Pix manual";
+    const statusLabel = contribution.status === "awaiting_payment"
+      ? "Aguardando Pix"
+      : contribution.status === "pending_manual_review"
+        ? "Revisão manual"
+        : "Pendente";
     const message = contribution.giver_message
       ? `<p class="pending-message">"${escapeHtml(contribution.giver_message)}"</p>`
       : "";
@@ -863,10 +974,11 @@ function renderPendingContributions(contributions = []) {
     return `
       <article class="pending-card">
         <div>
-          <p class="eyebrow">Pendente</p>
+          <p class="eyebrow">${escapeHtml(statusLabel)}</p>
           <h3>${escapeHtml(productName)}</h3>
           <p>${escapeHtml(productCategory)} • ${escapeHtml(LABELS.tipo[contribution.contribution_type] || contribution.contribution_type)}</p>
           <p><strong>${escapeHtml(contribution.giver_name)}</strong> registrou ${formatCurrency(contribution.amount)} via Pix.</p>
+          <p>${escapeHtml(paymentStatusText)}</p>
           ${message}
         </div>
         <div class="pending-actions">
@@ -1062,6 +1174,7 @@ function bindCatalogEvents() {
 function bindModalEvents() {
   elements.closeModalButton.addEventListener("click", closeModal);
   elements.copyPixButton.addEventListener("click", copyPixKey);
+  elements.copyPixPayloadButton.addEventListener("click", copyPixPayload);
   elements.backButton.addEventListener("click", () => updateModalStep("details"));
   elements.paymentConfirmation.addEventListener("change", setPrimaryButtonState);
   elements.giftForm.addEventListener("change", updateContributionField);
@@ -1082,7 +1195,7 @@ function bindModalEvents() {
     event.preventDefault();
 
     if (appState.currentStep === "details") {
-      preparePixStep();
+      await preparePixStep();
       return;
     }
 

@@ -2,6 +2,7 @@
 node_modules/
 .qa-venv/
 .qa-python/
+supabase/.temp/
 test-results/
 playwright-report/
 

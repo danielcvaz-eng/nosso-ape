@@ -1036,6 +1036,35 @@ a {
   overflow-wrap: anywhere;
 }
 
+.dynamic-pix {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(82, 109, 63, 0.22);
+  border-radius: 18px;
+  background-color: rgba(231, 240, 223, 0.45);
+}
+
+.dynamic-pix.hidden {
+  display: none;
+}
+
+.pix-qr-code {
+  width: min(220px, 100%);
+  height: auto;
+  margin: 0 auto;
+  border-radius: 12px;
+  background-color: #ffffff;
+}
+
+#pix-copy-paste {
+  min-height: 92px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+}
+
 .copy-pix-button {
   width: 100%;
   margin-top: 14px;

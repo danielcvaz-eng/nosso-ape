@@ -44,7 +44,7 @@ test("fluxo de presente inteiro registra intencao local e persiste", async ({ pa
   await page.getByLabel("Seu nome").fill("QA Codex");
   await page.getByRole("button", { name: "Continuar" }).click();
 
-  await expect(page.getByRole("heading", { name: /faça o pix pela chave exibida/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /faça o pix para confirmar sua ajuda/i })).toBeVisible();
   await expect(page.getByText("daniel.vazbtg@gmail.com")).toBeVisible();
 
   await page.getByLabel(/já fiz o pix/i).check();
