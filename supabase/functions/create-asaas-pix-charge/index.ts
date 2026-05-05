@@ -18,7 +18,7 @@ type CreateChargeBody = {
   contribution_type: "inteiro" | "colaborativo";
 };
 
-const requiredEnv = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "ASAAS_API_KEY", "ASAAS_API_BASE_URL", "ASAAS_CUSTOMER_ID"];
+const requiredEnv = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "ASAAS_API_KEY", "ASAAS_API_BASE_URL"];
 const MAX_PIX_ATTEMPTS_PER_HOUR = 10;
 
 function getEnv(name: string) {
@@ -122,6 +122,58 @@ async function cancelAsaasPayment(paymentId: string) {
   } catch (error) {
     console.error("[Asaas] failed to cancel orphan payment", paymentId, error);
   }
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function getSafeCustomerName(giverName: string) {
+  const normalizedName = giverName.trim().replace(/\s+/g, " ");
+  return normalizedName.length >= 2 ? normalizedName.slice(0, 120) : "Presenteador Nosso Apê";
+}
+
+async function resolveAsaasCustomerId(giverName: string) {
+  const fixedCustomerId = getEnv("ASAAS_CUSTOMER_ID").trim();
+
+  if (fixedCustomerId) {
+    return { customerId: fixedCustomerId, createdCustomer: null };
+  }
+
+  const cpfCnpj = onlyDigits(getEnv("ASAAS_CUSTOMER_CPF_CNPJ"));
+
+  if (!cpfCnpj) {
+    throw new Error(
+      "Asaas precisa de um cliente. Configure ASAAS_CUSTOMER_ID ou ASAAS_CUSTOMER_CPF_CNPJ nos secrets do Supabase."
+    );
+  }
+
+  const customerPayload: Record<string, string | boolean> = {
+    name: getSafeCustomerName(giverName),
+    cpfCnpj,
+    notificationDisabled: true
+  };
+  const email = getEnv("ASAAS_CUSTOMER_EMAIL").trim();
+  const phone = onlyDigits(getEnv("ASAAS_CUSTOMER_PHONE"));
+
+  if (email) {
+    customerPayload.email = email;
+  }
+
+  if (phone) {
+    customerPayload.mobilePhone = phone;
+  }
+
+  const createdCustomer = await asaasFetch("/customers", {
+    method: "POST",
+    body: JSON.stringify(customerPayload)
+  });
+
+  if (!createdCustomer?.id) {
+    throw new Error("Asaas criou o cliente sem retornar um ID válido.");
+  }
+
+  return { customerId: String(createdCustomer.id), createdCustomer };
 }
 
 async function assertRateLimit(supabase: any, request: Request, productId: number) {
@@ -236,10 +288,12 @@ Deno.serve(async (request) => {
     let paymentSaved = false;
 
     try {
+      const { customerId, createdCustomer } = await resolveAsaasCustomerId(body.giver_name);
+
       asaasPayment = await asaasFetch("/payments", {
         method: "POST",
         body: JSON.stringify({
-          customer: getEnv("ASAAS_CUSTOMER_ID"),
+          customer: customerId,
           billingType: "PIX",
           value: amount,
           dueDate: getTomorrowDate(),
@@ -265,7 +319,13 @@ Deno.serve(async (request) => {
           qr_code_payload: pixQrCode.payload || null,
           qr_code_image: pixQrCode.encodedImage || null,
           expires_at: pixQrCode.expirationDate || null,
-          raw_provider_payload: asaasPayment
+          raw_provider_payload: {
+            payment: asaasPayment,
+            customer: createdCustomer ? {
+              id: createdCustomer.id,
+              object: createdCustomer.object || null
+            } : { id: customerId, source: "ASAAS_CUSTOMER_ID" }
+          }
         })
         .select("id,provider_payment_id,amount,status,qr_code_payload,qr_code_image,expires_at")
         .single();

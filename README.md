@@ -481,8 +481,26 @@ Secrets necessários no Supabase:
 ```bash
 supabase secrets set ASAAS_API_KEY=...
 supabase secrets set ASAAS_API_BASE_URL=https://api.asaas.com/v3
-supabase secrets set ASAAS_CUSTOMER_ID=...
 supabase secrets set ASAAS_WEBHOOK_TOKEN=...
+```
+
+`ASAAS_CUSTOMER_ID` é opcional. Se você já tiver um cliente no Asaas, pode configurar:
+
+```bash
+supabase secrets set ASAAS_CUSTOMER_ID=cus_...
+```
+
+Se `ASAAS_CUSTOMER_ID` não existir, a função tenta criar um cliente automaticamente no Asaas antes da cobrança. Como a API do Asaas exige CPF/CNPJ para criar cliente, configure um CPF/CNPJ seguro em secret ou use um `ASAAS_CUSTOMER_ID` fixo:
+
+```bash
+supabase secrets set ASAAS_CUSTOMER_CPF_CNPJ=...
+```
+
+Secrets opcionais para criação automática de cliente:
+
+```bash
+supabase secrets set ASAAS_CUSTOMER_EMAIL=...
+supabase secrets set ASAAS_CUSTOMER_PHONE=...
 ```
 
 Depois, faça deploy:

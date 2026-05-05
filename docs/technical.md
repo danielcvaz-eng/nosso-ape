@@ -130,11 +130,23 @@ Secrets necessários no Supabase:
 ```text
 ASAAS_API_KEY
 ASAAS_API_BASE_URL
-ASAAS_CUSTOMER_ID
 ASAAS_WEBHOOK_TOKEN
 ```
 
 Esses valores nunca devem entrar em `scripts/config.js`, GitHub Pages ou GitHub.
+
+`ASAAS_CUSTOMER_ID` é opcional. Quando existir, a Edge Function usa esse customer fixo.
+Quando não existir, a Edge Function cria um customer no Asaas usando o nome do presenteador e `ASAAS_CUSTOMER_CPF_CNPJ`.
+Como a API do Asaas exige CPF/CNPJ para criação de customer, não invente esse dado: configure um CPF/CNPJ seguro em secret ou use um customer fixo.
+
+Secrets opcionais para criação automática de customer:
+
+```text
+ASAAS_CUSTOMER_ID
+ASAAS_CUSTOMER_CPF_CNPJ
+ASAAS_CUSTOMER_EMAIL
+ASAAS_CUSTOMER_PHONE
+```
 
 Guia operacional:
 

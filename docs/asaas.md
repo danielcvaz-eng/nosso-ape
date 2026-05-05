@@ -32,13 +32,47 @@ Configure no Supabase, nunca no frontend:
 ```bash
 supabase secrets set ASAAS_API_KEY=...
 supabase secrets set ASAAS_API_BASE_URL=https://api.asaas.com/v3
-supabase secrets set ASAAS_CUSTOMER_ID=...
 supabase secrets set ASAAS_WEBHOOK_TOKEN=...
 ```
 
 Para sandbox, use a URL base sandbox correspondente do Asaas.
 
-O `ASAAS_CUSTOMER_ID` deve ser um cliente criado no Asaas para representar a lista Nosso Apê, já que o site não coleta CPF/CNPJ do visitante.
+### Customer Asaas
+
+O `ASAAS_CUSTOMER_ID` agora é opcional.
+
+Opção recomendada quando você já tem um cliente criado no Asaas:
+
+```bash
+supabase secrets set ASAAS_CUSTOMER_ID=cus_...
+```
+
+Se `ASAAS_CUSTOMER_ID` existir, a Edge Function usa esse cliente em todas as cobranças.
+
+Se `ASAAS_CUSTOMER_ID` não existir, a Edge Function tenta criar um cliente antes de criar a cobrança. Como a API do Asaas exige CPF/CNPJ para criar cliente, você precisa informar um CPF/CNPJ seguro via secret:
+
+```bash
+supabase secrets set ASAAS_CUSTOMER_CPF_CNPJ=...
+```
+
+Secrets opcionais para o cliente criado automaticamente:
+
+```bash
+supabase secrets set ASAAS_CUSTOMER_EMAIL=...
+supabase secrets set ASAAS_CUSTOMER_PHONE=...
+```
+
+Dados usados na criação automática:
+
+- `name`: nome do presenteador informado no site;
+- `cpfCnpj`: valor de `ASAAS_CUSTOMER_CPF_CNPJ`;
+- `email`: valor de `ASAAS_CUSTOMER_EMAIL`, se existir;
+- `mobilePhone`: valor de `ASAAS_CUSTOMER_PHONE`, se existir;
+- `notificationDisabled`: `true`.
+
+Não invente CPF/CNPJ. Se não quiser usar CPF/CNPJ em secret, crie um cliente no Asaas e configure `ASAAS_CUSTOMER_ID`.
+
+O ID do customer usado/criado fica registrado em `payments.raw_provider_payload` para auditoria.
 
 ## Deploy das Edge Functions
 
