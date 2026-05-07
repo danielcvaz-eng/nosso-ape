@@ -50,6 +50,7 @@ const elements = {
   pixType: document.getElementById("pix-type"),
   pixReceiver: document.getElementById("pix-receiver"),
   pixValue: document.getElementById("pix-value"),
+  pixPaymentTitle: document.getElementById("pix-payment-title"),
   dynamicPixBox: document.getElementById("dynamic-pix-box"),
   pixQrCode: document.getElementById("pix-qr-code"),
   pixCopyPaste: document.getElementById("pix-copy-paste"),
@@ -467,21 +468,40 @@ function resetPixDetails() {
   elements.pixQrCode.removeAttribute("src");
   elements.pixCopyPaste.value = "";
   elements.pixExpirationNote.textContent = "";
+  elements.pixPaymentTitle.textContent = "Faça o Pix pela chave abaixo";
   elements.copyFeedback.textContent = "";
   elements.copyPixPayloadButton.classList.add("hidden");
 }
 
+function normalizeQrCodeImageSource(qrCodeImage) {
+  const value = String(qrCodeImage || "").trim();
+
+  if (!value) {
+    return "";
+  }
+
+  return value.startsWith("data:image/")
+    ? value
+    : `data:image/png;base64,${value}`;
+}
+
 function renderDynamicPixCharge(charge) {
+  const qrCodePayload = charge.qr_code_payload || charge.payload || charge.pix_payload || "";
+  const qrCodeImageSource = normalizeQrCodeImageSource(
+    charge.qr_code_image || charge.encodedImage || charge.qrCodeImage || charge.pix_qr_code_image
+  );
+
   appState.payment = {
     mode: "asaas",
     charge
   };
   elements.dynamicPixBox.classList.remove("hidden");
-  elements.copyPixPayloadButton.classList.toggle("hidden", !charge.qr_code_payload);
-  elements.pixCopyPaste.value = charge.qr_code_payload || "";
+  elements.pixPaymentTitle.textContent = "Pague pelo Pix automático";
+  elements.copyPixPayloadButton.classList.toggle("hidden", !qrCodePayload);
+  elements.pixCopyPaste.value = qrCodePayload;
 
-  if (charge.qr_code_image) {
-    elements.pixQrCode.src = `data:image/png;base64,${charge.qr_code_image}`;
+  if (qrCodeImageSource) {
+    elements.pixQrCode.src = qrCodeImageSource;
     elements.pixQrCode.classList.remove("hidden");
   } else {
     elements.pixQrCode.classList.add("hidden");
@@ -490,7 +510,8 @@ function renderDynamicPixCharge(charge) {
 
   elements.pixExpirationNote.textContent = charge.expires_at
     ? `Este Pix dinâmico expira em ${new Date(charge.expires_at).toLocaleString("pt-BR")}.`
-    : "Após o pagamento, a confirmação automática pode levar alguns instantes.";
+    : "Escaneie o QR Code ou use o Pix copia e cola. Após o pagamento, a confirmação automática pode levar alguns instantes.";
+  elements.copyFeedback.textContent = "Pix automático gerado. Use o QR Code ou copie o código abaixo.";
 }
 
 function useManualPixFallback(message) {
