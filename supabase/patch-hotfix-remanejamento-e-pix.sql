@@ -4,6 +4,9 @@
 -- - R$ 500,00 foram recebidos para o micro-ondas.
 -- - Os valores antes alocados para cafeteira (R$ 119,00) e lixeiros (R$ 70,00)
 --   foram remanejados para ajudar a completar o micro-ondas.
+-- - Depois da revisao do PR, o micro-ondas foi comprado: R$ 60,00 antes
+--   alocados na lava e seca foram remanejados para ele e o restante
+--   (R$ 44,12) foi complementado pelos moradores.
 -- - Cafeteira e lixeiros voltaram ao catalogo como disponiveis.
 --
 -- Este patch e documental/auditavel. Ele foi aplicado em producao em
@@ -109,9 +112,101 @@ values
     'manual'
   );
 
--- 5. Reabre os produtos conforme decisao operacional.
+-- 5. Reabre os produtos conforme decisao operacional inicial.
 update public.products
 set status = 'disponivel'
 where id in (2, 12, 16);
+
+-- 6. Revisao final do PR: o micro-ondas ja foi comprado.
+--
+-- Remove os R$ 60,00 do progresso da lava e seca, preservando o historico
+-- como rejeitado/remanejado.
+update public.contributions
+set status = 'rejected',
+    payment_status = null,
+    rejection_reason = 'Valor remanejado para completar o micro-ondas; lava e seca voltou a manter somente o progresso restante real.',
+    confirmed_at = now(),
+    confirmed_by = 'f81c2e5e-658f-4b11-82a4-cc7690e5953d',
+    confirmed_by_email = 'dvaz538@gmail.com'
+where id = '60217c28-5fe7-4f6d-b61b-b97688b16317'
+  and status = 'confirmed';
+
+-- Cria os lancamentos finais no micro-ondas sem duplicar caso o patch seja
+-- revisado/rodado novamente no mesmo banco.
+insert into public.contributions (
+  product_id,
+  giver_name,
+  giver_message,
+  amount,
+  contribution_type,
+  payment_method,
+  status,
+  confirmed_at,
+  confirmed_by,
+  confirmed_by_email,
+  payment_status,
+  confirmation_source
+)
+select
+  2,
+  'Remanejamento da lava e seca',
+  'R$ 60,00 remanejados da lava e seca para completar a compra do micro-ondas.',
+  60.00,
+  'colaborativo',
+  'pix',
+  'confirmed',
+  now(),
+  'f81c2e5e-658f-4b11-82a4-cc7690e5953d',
+  'dvaz538@gmail.com',
+  'manual_confirmed',
+  'manual'
+where not exists (
+  select 1
+  from public.contributions
+  where product_id = 2
+    and giver_name = 'Remanejamento da lava e seca'
+    and amount = 60.00
+    and status = 'confirmed'
+);
+
+insert into public.contributions (
+  product_id,
+  giver_name,
+  giver_message,
+  amount,
+  contribution_type,
+  payment_method,
+  status,
+  confirmed_at,
+  confirmed_by,
+  confirmed_by_email,
+  payment_status,
+  confirmation_source
+)
+select
+  2,
+  'Complemento dos moradores',
+  'Complemento final pago pelos moradores para fechar a compra do micro-ondas.',
+  44.12,
+  'colaborativo',
+  'pix',
+  'confirmed',
+  now(),
+  'f81c2e5e-658f-4b11-82a4-cc7690e5953d',
+  'dvaz538@gmail.com',
+  'manual_confirmed',
+  'manual'
+where not exists (
+  select 1
+  from public.contributions
+  where product_id = 2
+    and giver_name = 'Complemento dos moradores'
+    and amount = 44.12
+    and status = 'confirmed'
+);
+
+update public.products
+set status = 'recebido'
+where id = 2;
 
 commit;
