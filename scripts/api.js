@@ -25,7 +25,15 @@ const PRODUCT_IMAGES = {
   12: "assets/produtos/12-2-lixeiras-pequenas-para-o-lavabo.webp",
   13: "assets/produtos/13-porta-chaves-de-parede.webp",
   14: "assets/produtos/14-tapete-casa-dona-200x300-cm-caramelo.webp",
-  15: "assets/produtos/15-mop-com-cesto-de-inox.webp"
+  15: "assets/produtos/15-mop-com-cesto-de-inox.webp",
+  16: "assets/produtos/16-cafeteira-oster-inox-compacta-ocaf300.webp",
+  17: "assets/produtos/17-fruteira-metaltec-3-cestos-com-rodizios.webp",
+  18: "assets/produtos/18-smart-tv-65-lg-qned73.webp",
+  19: "assets/produtos/19-poltrona-balance-boucle-premium.webp",
+  20: "assets/produtos/20-dois-puffs-decorativos-redondos.webp",
+  21: "assets/produtos/21-ventilador-torre-para-sala.webp",
+  22: "assets/produtos/22-kit-tomadas-embutir.webp",
+  23: "assets/produtos/23-kit-coqueteleira-bebidas.webp"
 };
 
 const HIDDEN_PRODUCT_IDS = new Set([6]);

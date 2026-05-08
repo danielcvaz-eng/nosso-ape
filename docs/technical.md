@@ -347,6 +347,14 @@ supabase/patch-etapa-12-catalogo-produtos.sql
 
 Esse patch adiciona `is_visible` em `products`, oculta a máquina de gelo, atualiza micro-ondas e almofadas, adiciona cafeteira e fruteira e bloqueia contribuições novas para produtos ocultos. Os preços visíveis não devem usar `estimated_price`; são preços reais informados, embora possam mudar no varejista.
 
+Para aplicar a expansão de catálogo com novos itens e fotos locais, execute no Supabase:
+
+```text
+supabase/patch-expansao-catalogo-e-fotos.sql
+```
+
+Esse patch adiciona TV 65 polegadas, poltrona, dois puffs, ventilador, kit de tomadas e kit para bebidas. Ele também atualiza preço/link da cafeteira. O patch não altera status operacional em produtos já existentes durante conflito, para evitar reabrir ou fechar itens que já tenham histórico real.
+
 ## Erros comuns no modo moradores
 
 - `401`: sessão expirada, token inválido ou magic link antigo. Faça logout e peça novo magic link.

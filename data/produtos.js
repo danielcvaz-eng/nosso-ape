@@ -157,11 +157,11 @@ const produtos = [
     id: 16,
     nome: "Cafeteira Oster Inox Compacta 0,75L OCAF300 - 220V",
     categoria: "Cozinha",
-    preco: 119.00,
+    preco: 92.40,
     prioridade: "media",
     tipo: "inteiro",
     descricao: "Cafeteira compacta em inox para o café do dia a dia dos moradores.",
-    link: "https://a.co/d/0a0ZVY5B",
+    link: "https://www.amazon.com.br/dp/B093HGNHR2",
     status: "disponivel"
   },
   {
@@ -172,7 +172,73 @@ const produtos = [
     prioridade: "media",
     tipo: "inteiro",
     descricao: "Fruteira de chão com três cestos e rodízios para organizar frutas e itens da cozinha.",
-    link: "https://www.amazon.com.br/Metaltec-Fruteira-Resistente-Organizador-Refor%C3%A7ado/dp/B07RCZ552L/ref=sr_1_2_sspa?__mk_pt_BR=%C3%85M%C3%85%C5%BD%C3%95%C3%91&crid=1UB3479VPQ4AR&dib=eyJ2IjoiMSJ9.h4T18FvkROwO74GaygVv8KNd5cf5p-yL9Noh9knZbb0-1w_xjD1COYPvVoOQY986m7L6cZpTBcvgUemh-G_P5R5L1rwtpeKFVLvaRHaVjGB0phiCwcarcEyXn_zlk-6_R_KQgl8l3808CU3srMxp61gCFoyYdj-60UpE2lEBQPSyaVK4QRi980OP2QGusBub_jsOW5-zeD8cjoVaRMI3lLP7HUpFL_0y8zLHbN3xQVDFci4KImmdpY5t5ADN8tubb8lGEOsq9xKXTmig8hFn1B2KVQt1NIV0b8Ldi1PgIv0.5lPOS3hOPMZXzrDHCTKG8NekejU0jMPKVWAEQm1QfRs&dib_tag=se&keywords=fruteira&qid=1777743687&sprefix=fruteira%2Caps%2C223&sr=8-2-spons&ufe=app_do%3Aamzn1.fos.6a09f7ec-d911-4889-ad70-de8dd83c8a74&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&th=1",
+    link: "https://www.amazon.com.br/Metaltec-Fruteira-Resistente-Organizador-Refor%C3%A7ado/dp/B07RCZ552L/",
+    status: "disponivel"
+  },
+  {
+    id: 18,
+    nome: "Smart TV 4K 65\" LG QNED73",
+    categoria: "Sala",
+    preco: 3499.00,
+    prioridade: "alta",
+    tipo: "colaborativo",
+    descricao: "Televisão 65 polegadas 4K para compor a sala e melhorar os momentos de filme, jogo e visitas.",
+    link: "https://www.amazon.com.br/LG-Processador-Upscaling-Integrado-Controle/dp/B0GL9JXK9N/",
+    status: "disponivel"
+  },
+  {
+    id: 19,
+    nome: "Poltrona Balance bouclé premium para sala",
+    categoria: "Sala / Decoração",
+    preco: 575.09,
+    prioridade: "media",
+    tipo: "colaborativo",
+    descricao: "Poltrona confortável com leve balanço para criar um canto de leitura e descanso na sala.",
+    link: "https://produto.mercadolivre.com.br/MLB-6047740144-poltrona-balance-para-sala-com-leve-balanco-boucle-premium-_JM",
+    status: "disponivel"
+  },
+  {
+    id: 20,
+    nome: "Dois puffs decorativos redondos em suede nude",
+    categoria: "Sala / Decoração",
+    preco: 139.80,
+    prioridade: "media",
+    tipo: "inteiro",
+    descricao: "Par de puffs redondos para colocar embaixo do aparador e ter assentos extras na sala.",
+    link: "https://www.amazon.com.br/Decorativo-Redondo-Quarto-Banqueta-Estofado/dp/B0FXGYM9JB/",
+    status: "disponivel"
+  },
+  {
+    id: 21,
+    nome: "Ventilador torre silencioso para sala",
+    categoria: "Sala / Conforto",
+    preco: 207.00,
+    prioridade: "media",
+    tipo: "inteiro",
+    descricao: "Ventilador de torre discreto e silencioso para deixar a sala mais confortável nos dias quentes.",
+    link: "https://www.amazon.com.br/Ventilador-Silencioso-Potente-Coluna-velocidades/dp/B0DQ1P3HCL/",
+    status: "disponivel"
+  },
+  {
+    id: 22,
+    nome: "Kit tomadas para embutir com USB-C",
+    categoria: "Cozinha",
+    preco: 180.40,
+    prioridade: "alta",
+    tipo: "inteiro",
+    descricao: "Torre de tomada para embutir com três tomadas, USB e USB-C para deixar a bancada mais funcional.",
+    link: "https://www.amazon.com.br/tomadas-Embutir-Cozinha-Reuni%C3%A3o-Premium/dp/B0DFFZLZDR/",
+    status: "disponivel"
+  },
+  {
+    id: 23,
+    nome: "Kit para bebidas com coqueteleira e suporte",
+    categoria: "Cozinha / Bar",
+    preco: 161.97,
+    prioridade: "baixa",
+    tipo: "inteiro",
+    descricao: "Kit completo com coqueteleira e acessórios para preparar drinks e caipirinhas em casa.",
+    link: "https://www.amazon.com.br/Coqueteleira-Completo-Caipirinha-Suporte-Madeira/dp/B0FY7PSS22/",
     status: "disponivel"
   }
 ];
