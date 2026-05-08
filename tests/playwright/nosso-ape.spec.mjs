@@ -10,26 +10,44 @@ test.beforeEach(async ({ page }) => {
 
 test("catalogo carrega, filtra e limpa filtros", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /um cantinho novo/i })).toBeVisible();
-  await expect(page.locator(".product-card")).toHaveCount(16);
+  await expect(page.locator(".product-card")).toHaveCount(22);
   await expect(page.getByRole("heading", { name: /máquina de gelo/i })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /micro-ondas de bancada electrolux efficient 36l/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /almofadas decorativas cheias/i })).toBeVisible();
   await expect(page.getByText("R$ 130,00")).toBeVisible();
   await expect(page.getByRole("heading", { name: /cafeteira oster inox compacta/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /fruteira metaltec/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /smart tv 4k 65.*lg qned73/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /poltrona balance/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /dois puffs decorativos/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /ventilador torre silencioso/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /kit tomadas para embutir/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /kit para bebidas/i })).toBeVisible();
+  const tvCard = page.getByRole("heading", { name: /smart tv 4k 65.*lg qned73/i }).locator("xpath=ancestor::article");
+  const poltronaCard = page.getByRole("heading", { name: /poltrona balance/i }).locator("xpath=ancestor::article");
+  const puffsCard = page.getByRole("heading", { name: /dois puffs decorativos/i }).locator("xpath=ancestor::article");
+  await expect(tvCard.locator(".product-price")).toHaveText("R$ 3.499,00");
+  await expect(poltronaCard.locator(".product-price")).toHaveText("R$ 575,09");
+  await expect(puffsCard.locator(".product-price")).toHaveText("R$ 139,80");
   await expect(page.getByText(/preço de referência/i)).toHaveCount(0);
-  await expect(page.locator(".product-image")).toHaveCount(14);
+  await expect(page.locator(".product-image")).toHaveCount(22);
   await expect(page.locator(".product-image").first()).toHaveJSProperty("naturalWidth", 900);
   await page.getByAltText(/almofadas decorativas cheias/i).scrollIntoViewIfNeeded();
   await expect(page.getByAltText(/almofadas decorativas cheias/i)).toHaveJSProperty("naturalWidth", 900);
-  await expect(page.locator(".product-image-placeholder")).toHaveCount(2);
+  await page.getByAltText(/cafeteira oster inox compacta/i).scrollIntoViewIfNeeded();
+  await expect(page.getByAltText(/cafeteira oster inox compacta/i)).toHaveJSProperty("naturalWidth", 900);
+  await page.getByAltText(/fruteira metaltec/i).scrollIntoViewIfNeeded();
+  await expect(page.getByAltText(/fruteira metaltec/i)).toHaveJSProperty("naturalWidth", 900);
+  await page.getByAltText(/smart tv 4k 65/i).scrollIntoViewIfNeeded();
+  await expect(page.getByAltText(/smart tv 4k 65/i)).toHaveJSProperty("naturalWidth", 900);
+  await expect(page.locator(".product-image-placeholder")).toHaveCount(0);
 
   await page.getByLabel("Buscar item").fill("micro");
   await expect(page.locator(".product-card")).toHaveCount(1);
   await expect(page.getByRole("heading", { name: /micro-ondas de bancada/i })).toBeVisible();
 
   await page.getByRole("button", { name: "Limpar filtros" }).click();
-  await expect(page.locator(".product-card")).toHaveCount(16);
+  await expect(page.locator(".product-card")).toHaveCount(22);
 
   await page.getByLabel("Prioridade").selectOption("alta");
   await expect(page.locator(".product-card")).not.toHaveCount(0);
@@ -89,6 +107,6 @@ test("modo moradores local altera status e limpeza local reseta dados", async ({
 
   page.on("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Limpar dados locais" }).click();
-  await expect(page.locator(".product-card")).toHaveCount(16);
+  await expect(page.locator(".product-card")).toHaveCount(22);
   await expect(page.getByRole("button", { name: "Quero presentear" }).first()).toBeEnabled();
 });

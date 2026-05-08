@@ -6,11 +6,11 @@ const product = {
   id: 16,
   name: "Cafeteira Oster Inox Compacta 0,75L OCAF300 - 220V",
   category: "Cozinha",
-  price: 119,
+  price: 92.4,
   priority: "media",
   type: "inteiro",
   description: "Cafeteira compacta em inox para o café do dia a dia dos moradores.",
-  link: "https://a.co/d/0a0ZVY5B",
+  link: "https://www.amazon.com.br/dp/B093HGNHR2",
   status: "disponivel",
   estimated_price: false,
   is_visible: true

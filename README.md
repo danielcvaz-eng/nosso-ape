@@ -11,7 +11,7 @@ O projeto já cobre catálogo, filtros, fluxo de presente com modal, Pix, confir
 
 ## Funcionalidades atuais
 
-- catálogo oficial com 16 produtos reais visíveis
+- catálogo oficial com 22 produtos reais visíveis
 - agrupamento por categoria
 - busca por nome
 - filtros por categoria, prioridade e status
@@ -127,7 +127,7 @@ python3 -m http.server 8001
 ### Catálogo
 
 1. Abra a página.
-2. Verifique se os 16 produtos aparecem.
+2. Verifique se os 22 produtos aparecem.
 3. Verifique se os cards mostram imagens dos produtos.
 4. Use busca, filtro de categoria, prioridade e status.
 5. Clique em `Limpar filtros`.
@@ -347,6 +347,19 @@ Na Etapa 12, a imagem real das almofadas foi convertida para:
 assets/produtos/03-almofadas-decorativas-cheias.webp
 ```
 
+Na expansão de catálogo, também foram adicionadas fotos reais/representativas para:
+
+```text
+assets/produtos/16-cafeteira-oster-inox-compacta-ocaf300.webp
+assets/produtos/17-fruteira-metaltec-3-cestos-com-rodizios.webp
+assets/produtos/18-smart-tv-65-lg-qned73.webp
+assets/produtos/19-poltrona-balance-boucle-premium.webp
+assets/produtos/20-dois-puffs-decorativos-redondos.webp
+assets/produtos/21-ventilador-torre-para-sala.webp
+assets/produtos/22-kit-tomadas-embutir.webp
+assets/produtos/23-kit-coqueteleira-bebidas.webp
+```
+
 A foto principal do topo do site fica em:
 
 ```text
@@ -458,6 +471,12 @@ Para preparar Pix dinâmico via Asaas na Etapa 14, execute:
 - `supabase/patch-etapa-14-asaas-pix.sql`
 
 Esse patch cria `payments`, cria `payment_events`, amplia os status de `contributions` e preserva confirmação manual como fallback. Ele não apaga contribuições confirmadas nem valores já recebidos.
+
+Para aplicar a expansão de catálogo com TV, poltrona, puffs, ventilador, tomadas e kit de bebidas, execute:
+
+- `supabase/patch-expansao-catalogo-e-fotos.sql`
+
+Esse patch adiciona os produtos novos, atualiza preço/link da cafeteira e preserva o status operacional existente em itens já cadastrados. As imagens ficam no frontend, mapeadas por `id` em `scripts/api.js`. Os preços foram extraídos dos varejistas no momento da atualização e podem mudar depois.
 
 ### Pix Asaas
 
