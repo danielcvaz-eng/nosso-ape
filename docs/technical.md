@@ -21,8 +21,6 @@ O site usa imagens locais em `.webp`, servidas pelo próprio GitHub Pages.
 Arquivos:
 
 - `assets/produtos/*.webp`: imagens usadas nos cards
-- `assets/produtos-imagens.zip`: pacote de backup das imagens
-- `tools/fetch-product-images.mjs`: script auxiliar usado para buscar e regenerar imagens públicas dos produtos
 - `tools/convert-hero-image.mjs`: script auxiliar para converter `assets/hero/apartamento-sala.jpg` em `assets/hero/apartamento-sala.webp`
 - `tools/convert-product-image.mjs`: script auxiliar para converter JPGs de produtos em WebP no tamanho dos cards
 
