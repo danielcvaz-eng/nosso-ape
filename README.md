@@ -55,9 +55,6 @@ Nesta etapa, GitHub Actions não é obrigatório porque o projeto ainda é simpl
 ```text
 nosso-ape/
 ├── index.html
-├── script.js
-├── style.css
-├── produtos.js
 ├── package.json
 ├── package-lock.json
 ├── playwright.config.mjs
@@ -67,7 +64,6 @@ nosso-ape/
 │   │   └── apartamento-sala.webp
 │   ├── produtos/
 │   │   └── imagens dos produtos em WebP
-│   └── produtos-imagens.zip
 ├── data/
 │   └── produtos.js
 ├── scripts/
@@ -94,9 +90,9 @@ nosso-ape/
 
 Observação:
 
-- `script.js`, `style.css` e `produtos.js` continuam existindo na raiz como wrappers de compatibilidade.
-- a implementação real está em `data/`, `scripts/` e `styles/`.
-- as imagens dos cards ficam em `assets/produtos/`; o arquivo `assets/produtos-imagens.zip` é apenas um pacote de backup, não é usado diretamente pelo site.
+- `index.html` importa diretamente `styles/main.css` e `scripts/main.js`.
+- os dados de fallback ficam em `data/`, a lógica em `scripts/` e os estilos em `styles/`.
+- as imagens dos cards ficam em `assets/produtos/`.
 
 ## Como rodar localmente
 
@@ -338,12 +334,6 @@ Para trocar uma imagem:
 1. Substitua o arquivo correspondente em `assets/produtos/`.
 2. Mantenha o mesmo nome do arquivo ou ajuste o mapa `PRODUCT_IMAGES` em `scripts/api.js`.
 3. Rode os testes.
-
-O arquivo abaixo é apenas backup das imagens:
-
-```text
-assets/produtos-imagens.zip
-```
 
 Para converter uma imagem JPG de produto para WebP no mesmo padrão dos cards:
 
